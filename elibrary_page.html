@@ -1,0 +1,3493 @@
+<meta charset="UTF-8">
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="robots" content="noindex,nofollow">
+<title>Поиск авторов</title>
+
+<script type="text/javascript" src="/jquery.min.js"></script>
+<script type="text/javascript" src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+<script type="text/javascript" src="/fancybox/jquery.easydrag.js"></script>
+<script type="text/javascript" src="/jquery.tools.min.js"></script>
+<script type="text/javascript" src="/elibrary.js"></script>
+<link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css" type="text/css" media="screen">
+<link rel="stylesheet" href="/style_sm.css" type="text/css" media="screen">
+
+<style>
+#wiki_tooltip {
+  z-index: 9999;
+  position: absolute;
+  display: none;
+  top:0px;
+  left:0px;
+	background-color: #ffffff; 
+  padding: 0;
+  color: #000;
+	border: 0;
+	box-shadow: 1px 2px 3px #888; 
+	margin: 0; 
+}
+</style>
+
+<SCRIPT LANGUAGE="JavaScript">
+
+$(function(){
+	$("[data-tooltip]").click(function (eventObject) {
+		$data_tooltip = $(this).attr("data-tooltip");
+		$url=$data_tooltip.replace('/wiki/', '/api/rest_v1/page/summary/');
+		$.get($url, function($wiki) {
+			if(typeof $wiki.thumbnail != 'undefined'){
+				$img_source = $wiki.thumbnail.source;
+				$img_width = $wiki.thumbnail.width;
+				$img_height = $wiki.thumbnail.height;
+				$shift = $img_height/2 + 100;
+				$data_html = '<table width=260 cellpadding=0 border=0 cellspacing=0><tr valigh=top><td width=260><a href="javascript:window.open(\'' + $data_tooltip + '\'); close_tooltip();"><img src="' + $img_source + '" width=260></a></td></tr><tr><td align=left valign=top><div class="menurd" style="padding: 10px 20px 0 20px; font-size: 9pt; width: 220px; text-align: left;"><a href="javascript:window.open(\'' + $data_tooltip + '\'); close_tooltip();">' + $wiki.extract_html + '</a></div></td></tr><tr><td align=right><img src="/images/cross.jpg" width=12 height=12 hspace=4 vspace=1 onClick="close_tooltip()"></td></tr></table>';
+			}
+			else {
+				$shift = 170;
+				$data_html = '<table width=260 cellpadding=0 border=0 cellspacing=0><tr><td  width=260 align=left valign=top><div class="menurd" style="padding: 10px 20px 0 20px; font-size: 9pt; width: 220px; text-align: left;"><a href="javascript:window.open(\'' + $data_tooltip + '\'); close_tooltip();">' + $wiki.extract_html + '</a></div></td></tr><tr><td align=right><img src="/images/cross.jpg" width=12 height=12 hspace=4 vspace=1 onClick="close_tooltip()"></td></tr></table>';
+			}
+			$("#wiki_tooltip").html($data_html)
+			.css({ 
+				"top" : eventObject.pageY - $shift,
+				"left" : eventObject.pageX + 25
+			})
+			.fadeIn();
+		});
+	});
+});
+
+$(document).on('keydown', function(event) {
+  if (event.key === "Escape") {
+    $("#wiki_tooltip").fadeOut();
+  }
+});
+
+function close_tooltip(){
+$("#wiki_tooltip").fadeOut();
+}
+
+but_blue_hover=new Image();
+but_blue_hover.src="/images/but_blue_hover.png";
+but_red_hover=new Image();
+but_red_hover.src="/images/but_red_hover.png";
+but_gray_hover=new Image();
+but_gray_hover.src="/images/but_gray_hover.png";
+
+var allowaddauthor=0;
+
+function RowSelect(row,sel){
+  var rbgc = sel==1 ? "#e8e8e8" : "#f5f5f5";
+  $('#'+row+' td').attr('bgColor', rbgc);
+}
+function select_all(){
+  $('input:checkbox[name^="tid"]').attr('checked', true);
+  $('tr[id^="a"] td').attr('bgColor', "#e8e8e8");
+}
+function deselect_all(){
+  $('input:checkbox[name^="tid"]').attr('checked', false);
+  $('tr[id^="a"] td').attr('bgColor', "#f5f5f5");
+}
+function reset_form(){
+  var frm = document.forms["results"];
+  frm.surname.value="";
+  frm.countryid.value="";
+  frm.town.value="";
+  frm.orgid.value="";
+  frm.orgname.value="";
+  frm.rubriccode.value="";
+  frm.metrics.value="1";
+  frm.codetype.value="SPIN";
+  frm.codevalue.value="";
+  frm.authorboxid.value="";
+  frm.inaffil.checked=0;
+  frm.rubricinreg.checked=0;
+  frm.show_nopubl.checked=0;
+}
+function author_search(){
+  var frm = document.forms["results"];
+  frm.action="authors.asp";
+  frm.pagenum.value="";
+  frm.target="";
+  frm.submit()
+}
+function submit_enter(event){ 
+  var keycode; 
+  event = event || window.event; 
+  keycode = event.keyCode || event.which;
+  if(keycode==13){
+    author_search();
+	return false;
+  }
+} 
+function authors_search(){
+  var frm = document.forms["results"];
+  frm.authors_all.value="";
+  for (var i=0; i<frm.elements.length; i++){
+   if(frm.elements[i].id.substring(0,3)=="tid"){
+    if(frm.elements[i].checked){
+    frm.authors_all.value = frm.authors_all.value + document.getElementById(frm.elements[i].name.replace("tid","hid")).value + "|";}}}
+  if (frm.authors_all.value=="") {
+    alerts ("Не выделено ни одного автора!")}
+  else {
+  frm.action="querybox.asp";
+  frm.target="";
+  frm.submit()}
+}
+function authorbox_add(){
+  var frm = document.forms["results"];
+  var issel=0;
+  frm.authors_all.value="";
+  for (var i = 0; i < frm.elements.length; i++) {
+    if (frm.elements[i].name.substring(0,3)=="tid"){
+       if (frm.elements[i].checked) {
+	     issel=issel+1;
+	     frm.authors_all.value = frm.authors_all.value + frm.elements[i].name.substring(3, frm.elements[i].name.length) + "|";
+	   }
+    }
+ }
+ if (issel==0) {
+    alerts ("Не выделено ни одного автора")}
+ else {
+    $.fancybox({
+      href : 'authorbox_select.asp?authors_all='+frm.authors_all.value ,
+      title : '',
+			padding : 20,     
+			width : 530,
+			height : 400,
+			overlayOpacity : 0.3,	
+			overlayColor : '#000',
+			speedIn : 500,
+			hideOnOverlayClick : false,
+			enableEscapeButton : true,
+			type : 'iframe'
+    });
+  }
+}
+function goto_page(pnum){
+  var frm = document.forms["results"];
+  frm.pagenum.value=pnum;
+  frm.action="authors.asp";
+  frm.target="";
+  frm.submit()
+}
+function show_help(topic){
+  anewwin=window.open("", "addwin", "resizable=yes,scrollbars=yes,height=300,width=500,top=0,left=0");
+  document.forms["results"].action=topic;
+  document.forms["results"].target="addwin";
+  document.forms["results"].submit()
+}
+function organizat_add(){
+    $.fancybox({
+      href : 'user_org_add3.asp' ,
+      title : '',
+	  padding : 20,     
+	  width : 480,
+	  height : 350,
+	  overlayOpacity : 0.3,	
+	  overlayColor : '#000',
+	  speedIn : 500,
+	  hideOnOverlayClick : false,
+	  enableEscapeButton : true,
+	  type : 'iframe'
+    });
+}
+
+
+
+function show_author_refs(iid){
+
+  alerts("Для доступа к этой странице необходимо вначале войти в библиотеку!");
+  document.getElementById("win_login").className = "expanded";
+  document.forms["login"].login.focus();
+
+}
+
+function show_wiki_page(id, url){
+	url1=url.replace('/wiki/', '/api/rest_v1/page/summary/');
+	$.get(url1, function(wiki) {
+		var wikitag=$('#wikipage');
+		wikitag.removeData('tooltip').unbind();
+		var tagtext='<a href="'+url+'" target="_blank">'+wiki.extract_html+'</a>';
+		wikitag.attr('title', tagtext);
+		wikitag.tooltip({
+			position: "top right",
+			offset: [-15, -200],
+			effect: "fade", 
+			fadeInSpeed: 400, 
+			fadeOutSpeed: 400, 
+			delay: 400,  
+			predelay: 400,
+			opacity: 1.0,
+			cancelDefault: true
+		});
+	})
+}
+
+</SCRIPT>
+</head>
+
+
+
+<body> 
+<table width=100% cellpadding=0 cellspacing=0 border=0>
+<tr><td width=100% align=center valign=top>
+
+<table  cellpadding=0 cellspacing=0 border=0>
+<tr><td width=170 align=left valign=top id="leftcol">
+
+<table border=0 cellspacing=0 cellpadding=0 width=150>
+
+<tr><td><a href="/defaultx.asp"><img src="/images/welcome1.jpg" width=150 title="НАУЧНАЯ ЭЛЕКТРОННАЯ БИБЛИОТЕКА eLIBRARY.RU" border=0 vspace=15></a></td></tr>
+
+
+<tr><td><a href="/defaultx.asp"><img id="elibrary_logo" src="/images/elibrary_logo2.svg" width=150 height=39 border=0 vspace=10 title="eLIBRARY.RU - НАУЧНАЯ ЭЛЕКТРОННАЯ БИБЛИОТЕКА"></a></td></tr>
+<script language="JavaScript">
+if (supportsSVG) {
+  document.getElementById("elibrary_logo").src="/images/elibrary_logo2.svg";}
+else {
+  document.getElementById("elibrary_logo").src="/images/elibrary_logo.gif";}
+</script>
+<tr><td><img src="/pic/1pix.gif" vspace=10></td></tr>
+<SCRIPT LANGUAGE="JavaScript">
+function check_search(){
+if (document.forms["search"].ftext.value.length > 1) {
+  var frm = document.forms["search"];
+  frm.action="/query_results.asp";
+  frm.target="";
+  frm.submit();
+  }
+else {
+  alert("Введите не менее двух символов");
+  }
+}
+function search_enter(event){ 
+  var keycode; 
+  event = event || window.event; 
+  keycode = event.keyCode || event.which;
+  if(keycode==13){
+    check_search();
+	return false;
+  }
+} 
+</SCRIPT>
+<FORM method=post name="search" onSubmit="return false">
+<input type="hidden" name="where_fulltext" value="on">
+<input type="hidden" name="where_name" value="on">
+<input type="hidden" name="where_abstract" value="on">
+<input type="hidden" name="where_keywords" value="on">
+<input type="hidden" name="where_affiliation" value="">
+<input type="hidden" name="where_references" value="">
+<input type="hidden" name="type_article" value="on">
+<input type="hidden" name="type_disser" value="on">
+<input type="hidden" name="type_book" value="on">
+<input type="hidden" name="type_report" value="on">
+<input type="hidden" name="type_conf" value="on">
+<input type="hidden" name="type_patent" value="on">
+<input type="hidden" name="type_preprint" value="on">
+<input type="hidden" name="type_grant" value="on">
+<input type="hidden" name="type_dataset" value="on">
+<input type="hidden" name="search_freetext" value="">
+<input type="hidden" name="search_morph" value="on">
+<input type="hidden" name="search_fulltext" value="">
+<input type="hidden" name="search_open" value="">
+<input type="hidden" name="search_results" value="">
+<input type="hidden" name="titles_all" value="">
+<input type="hidden" name="authors_all" value="">
+<input type="hidden" name="rubrics_all" value="">
+<input type="hidden" name="queryboxid" value="">
+<input type="hidden" name="itemboxid" value="">
+<input type="hidden" name="begin_year" value="">
+<input type="hidden" name="end_year" value="">
+<input type="hidden" name="issues" value="all">
+<input type="hidden" name="orderby" value="rank">
+<input type="hidden" name="order" value="rev">
+<input type="hidden" name="changed" value="1">
+
+<tr><td width=100% align=center valign=top>
+
+<div class="left-panel">
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr><td width=100% align=center valign=top><font color=#F26C4F><b><span class="expandable" onClick="$('#win_search').slideToggle(500, function(){didScroll = true;})" title="Поиск в Научной электронной библиотеке">ПОИСК</span></b></font>
+</td></tr>
+</table>
+<div ID="win_search" class="collapsed">
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr><td width=140 align=center valign=top>
+<div style="height: 10px;"></div>
+<div class="formfr" style="width:126px;"><input type=text id="ftext" name="ftext" value="" style="width:118px;" class="inputt" onKeyPress="search_enter(event);"></div>
+<div style="height: 11px;"></div>
+
+<div class="butblue" style="width: 52px;" onClick="check_search()">Найти</div>
+
+</td></tr>
+<tr><td><img src="/pic/1pix.gif"></td></tr>
+</table>
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr class="menub"><td align=center width=20 valign=bottom><img src="/images/or_kv.gif" width=7 height=7 vspace=1 class="shadow"></td><td align=left width=120 valign=top><a href="/querybox.asp?scope=newquery">Расширенный поиск</a></td></tr>
+
+
+<tr><td colspan=2><div style="height:3px;"></div></td></tr>
+<tr class="menub"><td align=center width=20 valign=bottom><img src="/images/or_kv.gif" width=7 height=7 vspace=1 class="shadow"></td><td align=left width=120 valign=top><a href="/neural_search.asp">Нейропоиск</a></td></tr>
+</table>
+<div style="height: 4px;"></div>
+</div>
+</div>
+
+</FORM>
+
+</td></tr>
+
+<tr><td><img src="/pic/1pix.gif" vspace=9></td></tr>
+<SCRIPT LANGUAGE="JavaScript">
+function check_all(){
+  if (document.forms["login"].login.value==""){
+    alert("Не указано имя пользователя!");
+	return false;
+	}
+  else if (document.forms["login"].password.value==""){
+    alert("Не указан пароль!");
+	return false;
+	}
+  else{
+    var frm = document.forms["login"];
+    frm.action="/start_session.asp";
+    frm.target="";
+    frm.submit();
+   }
+}
+function login_enter(event){ 
+  var keycode; 
+  event = event || window.event; 
+  keycode = event.keyCode || event.which;
+  if(keycode==13){
+    check_all();
+	return false;
+  }
+} 
+function sso_orgs(){
+  var frm = document.forms["results"];
+  $.fancybox({
+    href : 'sso_orgs.asp' ,
+    title : '',
+	  padding : 20,     
+	  width : 480,
+	  height : 200,
+	  overlayOpacity : 0.3,	
+	  overlayColor : '#000',
+	  speedIn : 500,
+	  hideOnOverlayClick : false,
+	  enableEscapeButton : true,
+	  type : 'iframe'
+  });
+}
+function show_hide_password(target){
+	var input = document.getElementById('password');
+	if (input.getAttribute('type') == 'password') {
+		target.classList.add('view');
+		input.setAttribute('type', 'text');
+	} 
+	else {
+		target.classList.remove('view');
+		input.setAttribute('type', 'password');
+	}
+	return false;
+}
+</SCRIPT>
+
+<FORM method=post name="login" onSubmit="return false">
+<input type=hidden name="rpage" value=https://elibrary.ru/authors.asp>
+<tr><td width=100% align=center valign=top>
+
+<div class="left-panel">
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr><td width=100% align=center valign=top><font color=#F26C4F><b><span class="expandable" onClick="$('#win_login').slideToggle(500, function(){didScroll = true;})" title="Вход в библиотеку для зарегистрированных пользователей">ВХОД</span></b></font>
+</td></tr>
+</table>
+
+<div ID="win_login" class="expanded">
+<div style="height: 10px;"></div>
+
+<table border=0 cellspacing=0 cellpadding=2 width=140>
+
+<tr><td width=100% align=left valign=top>
+&nbsp;<font color=#000000>IP-адрес компьютера:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>188.134.91.116</font></td></tr>
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Название организации:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+
+<font color=#00008f>не определена</font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Имя пользователя<br>&nbsp;или адрес эл. почты:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<div class="formfr" style="width:126px;"><input type=text id="login" name="login" value="" style="width:118px; text-align:center;" class="inputt" onKeyPress="login_enter(event)"></div>
+</td></tr>
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Пароль:</font></td></tr>
+<tr><td align=center width=100%>
+<div class="formfr" style="width:126px;"><input type=password id="password" name="password" value="" style="width:102px; text-align:center;" class="inputt" onKeyPress="login_enter(event)"><a href="#" class="password-control" onclick="return show_hide_password(this);"></a></div>
+</td></tr>
+
+<tr><td align=center width=100%>
+
+<div style="height: 9px;"></div>
+<div class="butred" style="width: 52px;" onClick="check_all()">Вход</div>
+<div style="height: 9px;"></div>
+
+</td></tr></table>
+
+<table border=0 cellspacing=3 cellpadding=0 width=140>
+<tr valign=middle class="menub"><td align=center width=30><input type=checkbox name="knowme"></td><td align=left width=101>Запомнить меня</td></tr>
+<tr class="menub"><td align=right width=30 valign=top><img src="/images/or_kv.gif" width=7 height=7 hspace=9 vspace=1 class="shadow"></td><td align=left width=101 valign=top ><a href="/access_terms.asp">Правила доступа</a></td></tr>
+<tr class="menub"><td align=right width=30 valign=top><img src="/images/or_kv.gif" width=7 height=7 hspace=9 vspace=1 class="shadow"></td><td align=left width=101 valign=top ><a href="/author_info.asp?isnew=1&rpage=https%3A%2F%2Felibrary%2Eru%2Fauthors%2Easp">Регистрация</a></td></tr>
+<tr class="menub"><td align=right width=30 valign=top><img src="/images/or_kv.gif" width=7 height=7 hspace=9 vspace=1 class="shadow"></td><td align=left width=101 valign=top ><a href="/pass_request.asp">Забыли пароль?</a></td></tr>
+
+
+<tr class="menub"><td align=right width=30 valign=top><img src="/images/or_kv.gif" width=7 height=7 hspace=9 vspace=1 class="shadow"></td><td align=left width=101 valign=top><a href="javascript:sso_orgs()">Вход через Вашу организацию</a></td></tr>
+
+
+</table>
+<div style="height: 4px;"></div>
+</div>
+</div>
+</td></tr>
+</FORM>
+
+<tr><td><img src="/pic/1pix.gif" vspace=9></td></tr>
+<tr><td width=100% align=center valign=top>
+
+<div class="left-panel">
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr><td width=100% align=center valign=top><font color=#F26C4F><b><span class="expandable" onClick="$('#win_goto').slideToggle(500, function(){didScroll = true;})" title="Быстрый переход на популярные страницы сайта">НАВИГАТОР</span></b></font>
+</td></tr>
+</table>
+
+<div ID="win_goto" class="expanded">
+<div style="height: 10px;"></div>
+
+<table border=0 cellspacing=4 cellpadding=0 width=140>
+
+<tr valign=top><td width=25 align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left width=115><a href="/titles.asp">ЖУРНАЛЫ</a></td></tr>
+<tr valign=top><td align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left><a href="/books.asp">КНИГИ</a></td></tr>
+<tr valign=top><td align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left><a href="/patents.asp">ПАТЕНТЫ</a></td></tr>
+<tr valign=top><td align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left><a href="/querybox.asp">ПОИСК</a></td></tr>
+<tr valign=top><td align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left><a href="/authors.asp">АВТОРЫ</a></td></tr>
+<tr valign=top><td align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left><a href="/orgs.asp">ОРГАНИЗАЦИИ</a></td></tr>
+<tr valign=top><td align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left><a href="/keywords.asp">КЛЮЧЕВЫЕ СЛОВА</a></td></tr>
+<tr valign=top><td align=center><img src="/images/bl_kv.gif" border=0 width=7 height=7 hspace=3 class="shadow"></td><td align=left><a href="/rubrics.asp">РУБРИКАТОР</a></td></tr>
+
+
+</table>
+
+<div style="height: 10px;"></div>
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr class="menub"><td align=right width=25 valign=bottom><img src="/images/or_kv.gif" width=7 height=7 border=0 hspace=6 vspace=1 class="shadow"></td><td align=left width=115 valign=top><a href="/defaultx.asp">Начальная страница</a></td></tr></table>
+<div style="height: 4px;"></div>
+
+</div>
+</div>
+</td></tr>
+
+<tr><td><img src="/pic/1pix.gif" vspace=9></td></tr>
+<SCRIPT LANGUAGE="JavaScript">
+function end_session(){
+
+  document.forms["session"].saveuser.value="1";
+
+  document.forms["session"].action="/end_session.asp";
+  document.forms["session"].target="";
+  document.forms["session"].submit()
+}
+</SCRIPT>
+<FORM action="/end_session.asp" method=POST name="session">
+<input type="hidden" name="saveuser" value="1">
+
+<tr><td width=100% align=center valign=top>
+
+<div class="left-panel">
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr><td width=100% align=center valign=top><font color=#F26C4F><b><span class="expandable" onClick="$('#win_session').slideToggle(500, function(){didScroll = true;})" title="Информация о текущей сессии пользователя">СЕССИЯ</span></b></font>
+</td></tr>
+</table>
+
+
+<div ID="win_session" class="collapsed">
+<div style="height: 10px;"></div>
+
+<table border=0 cellspacing=0 cellpadding=2 width=140>
+<tr><td width=100% align=left valign=top>
+&nbsp;<font color=#000000>Имя пользователя:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>Незарегистрированный пользователь</font></td></tr>
+
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Начало работы:</font></td></tr>
+
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>20.03.2025 15:49</font></td></tr>
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Время работы:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>00:00</font></td></tr>
+</table>
+
+<div style="height: 10px;"></div>
+
+<table border=0 cellspacing=3 cellpadding=0 width=140>
+<tr class="menub"><td align=right width=30 valign=top><img src="/images/or_kv.gif" width=7 height=7 border=0 hspace=9 vspace=1 class="shadow"></td><td align=left width=101 valign=top><a href="/project_user_office.asp">Личный кабинет</a></td></tr>
+<tr class="menub"><td align=right width=30 valign=top><img src="/images/or_kv.gif" width=7 height=7 border=0 hspace=9 vspace=1 class="shadow"></td><td align=left width=101 valign=top><a href="javascript:end_session()">Закрыть сессию</a></td></tr>
+
+
+</table>
+<div style="height: 4px;"></div>
+
+</div>
+</div>
+</td></tr>
+
+<tr><td><img src="/pic/1pix.gif" vspace=9></td></tr>
+</FORM>
+
+<tr><td width=100% align=center valign=top>
+
+<div class="left-panel">
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr><td width=100% align=center valign=top><font color=#F26C4F><b><span class="expandable" onClick="$('#win_contact').slideToggle(500, function(){didScroll = true;})" title="Контактная информация Научной электронной библиотеки">КОНТАКТЫ</span></b></font>
+</td></tr>
+</table>
+
+<div ID="win_contact" class="collapsed">
+<div style="height: 10px;"></div>
+
+<table border=0 cellspacing=0 cellpadding=2 width=140>
+
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Служба поддержки:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 1<br></font>
+<font color=#00008f><a href="mailto:support@elibrary.ru">support@elibrary.ru</a></font></td></tr>
+</td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Издателям журналов:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 2<br></font>
+<font color=#00008f><a href="mailto:publish@elibrary.ru">publish@elibrary.ru</a></font></td></tr>
+
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Издателям книг:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 3<br></font>
+<font color=#00008f><a href="mailto:book@elibrary.ru">book@elibrary.ru</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Science Space для издательств:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 4<br></font>
+<font color=#00008f><a href="mailto:info@sciencespace.ru">info@sciencespace.ru</a></font></td></tr>
+
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Science Index для организаций:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 4<br></font>
+<font color=#00008f><a href="mailto:org@scienceindex.ru">org@scienceindex.ru</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Доступ к API:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 4<br></font>
+<font color=#00008f><a href="mailto:api@elibrary.ru">api@elibrary.ru</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Подписчикам:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 6<br></font>
+<font color=#00008f><a href="mailto:sales.team@elibrary.ru">sales.team@elibrary.ru</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Конференции, семинары:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f>+7 (495) 544-2494 доб. 7<br></font>
+<font color=#00008f><a href="mailto:conf@elibrary.ru">conf@elibrary.ru</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Почтовый адрес:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f><a href="/contact_new.asp">117246, г. Москва,
+Научный проезд, д. 14А, стр. 3, таунхаус 1</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Веб-сайт:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f><a href="https://elibrary.ru">https://elibrary.ru</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Telegram-канал:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f><a href="https://t.me/elibrary_ru_official" target=_blank>t.me/elibrary_ru_official</a></font></td></tr>
+
+<tr><td width=100% align=left valign=top>
+<div style="height: 2px;"></div>
+&nbsp;<font color=#000000>Размещение рекламы:</font></td></tr>
+<tr><td width=100% align=center valign=top>
+<font color=#00008f><a href="mailto:reklama@elibrary.ru">reklama@elibrary.ru</a></font></td></tr>
+
+</table>
+
+<div style="height: 10px;"></div>
+
+<table border=0 cellspacing=0 cellpadding=0 width=140>
+<tr class="menub"><td align=right width=30 valign=bottom><img src="/images/or_kv.gif" width=7 height=7 border=0 hspace=6 vspace=1 class="shadow"></td><td align=left width=110 valign=top><a href="/contact_new.asp">Схема проезда</a></td></tr>
+
+<tr class="menub"><td align=right width=30 valign=bottom><img src="/images/or_kv.gif" width=7 height=7 border=0 hspace=6 vspace=1 class="shadow"></td><td align=left width=110 valign=top><a href="https://support.elibrary.ru">Задать вопрос</a></td></tr>
+
+<tr class="menub"><td align=right width=30 valign=bottom><img src="/images/or_kv.gif" width=7 height=7 border=0 hspace=6 vspace=1 class="shadow"></td><td align=left width=110 valign=top><a href="/vacancy.asp">Вакансии</a></td></tr>
+
+</table>
+<div style="height: 4px;"></div>
+
+</div>
+</div>
+</td></tr>
+
+<tr><td><img src="/pic/1pix.gif" vspace=9></td></tr>
+<tr><td width=100% align=center valign=top>
+<div style="width: 140px;" class="help-panel">
+<table width=140 cellspacing=0 cellpadding=3 border=0>
+<tr><td width=15% align=right valign=top>
+<img src="/images/but_orange_i.gif" width=15 height=15 hspace=0 border=0></td>
+<td width=85% align=left valign=middle><font color=#00008f>По всем вопросам, связанным с работой в системе Science Index, обращайтесь, пожалуйста, в службу поддержки:<br><br>
++7 (495) 544-2494<br><a href="mailto:support@elibrary.ru">support@elibrary.ru</a></font>
+</td></tr>
+</table>
+</div>
+</td></tr>
+
+<tr><td><img src="/pic/1pix.gif" vspace=9></td></tr>
+
+
+</table>
+
+</td><td align=left valign=top>
+
+<table border=0 cellspacing=0 cellpadding=0>
+<tr><td width=600 align=left valign=top>
+
+<table width=580 border=0 cellspacing=0 cellpadding=0>
+<tr><td width=100% align=left valign=top>
+
+<div class="header-panel">
+<div style="margin: 0; border: 0; padding: 0 0 5px 0; text-align: center; font-size: 9pt;"><font color=#5674b9><b>ПОИСК АВТОРОВ</b></font></div>
+</div>
+
+</td></tr></table>
+
+</td><td width=200 align=right valign=middle id="rightcol">
+<a href="/project_risc.asp"><img id="scienceindex_logo2" src="/images/scienceindex_logo2.svg" width=173 height=49 border=0 hspace=5 title="Информационно-аналитическая система SCIENCE INDEX"></a></td></tr>
+<script language="JavaScript">
+if (supportsSVG) {
+  document.getElementById("scienceindex_logo2").src="/images/scienceindex_logo2.svg";}
+else {
+  document.getElementById("scienceindex_logo2").src="/images/scienceindex_logo2.png";}
+</script>
+<tr><td align=left valign=top>
+
+<table width=580 border=0 cellspacing=0 cellpadding=0>
+
+<FORM method=post name="results" onSubmit="return false">
+<input type="hidden" name="authors_all" value="">
+<input type="hidden" name="pagenum" value="">
+<input type="hidden" name="authorbox_name" value="">
+<input type="hidden" name="selid" value="">
+<input type="hidden" name="orgid" value="">
+<input type="hidden" name="orgadminid" value="">
+
+<tr><td width=100% align=left valign=top>
+
+<div class="form-panel">
+
+<div style="margin:0 0 4px 0; border:0; padding:0;">
+<font color=#F26C4F><b><span class="expandable" onClick="$('#show_param').slideToggle(500, function(){didScroll = true;})" title="Показать/скрыть параметры поиска">ПАРАМЕТРЫ</span></b></font>
+</div>
+
+<div id="show_param" class="expanded">
+
+<table width=520 cellspacing=3 cellpadding=0 border=0>
+<tr valign=top class="menus"><td width=210 align=left valign=top><font color=#00008f>&nbsp;&nbsp;Фамилия:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>Укажите фамилию автора на русском языке, или фамилию и имя, или фамилию, имя и отчество, или фамилию и инициалы</p>'></td><td width=15></td><td colspan=3 align=left valign=top><font color=#00008f>&nbsp;&nbsp;Персональный идентификатор автора:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>Для поиска конкретного автора укажите его персональный идентификатор в одной из распространенных систем идентификации авторов</p>'></td></tr>
+<tr align=left valign=top>
+<td width=210><div class="formfr"><input type="text" id="surname" name="surname" value="" style="width:198px" class="inputt" onKeyPress="submit_enter(event)"></div></td>
+<td width=15></td>
+<td width=122><div class="formfr"><select name="codetype" id="codetype" style="width:118px" class="input" onKeyPress="submit_enter(event)">
+<option value="SPIN" selected>SPIN-код:
+<option value="ORCID" >ORCID:
+<option value="ResearcherID" >ResearcherID:
+<option value="ScopusID" >Scopus Author ID:
+<option value="ArXivID" >ArXiv Author ID:
+<option value="RSCI" >РИНЦ Author ID:
+</select></div></td>
+<td width=5></td>
+<td width=150><div class="formfr"><input type="text" id="codevalue" name="codevalue" value="" style="width:128px" class="inputt" onKeyPress="submit_enter(event)"></div></td>
+</tr>
+</table>
+
+<table width=520 cellspacing=3 cellpadding=0 border=0>
+<tr valign=top class="menus"><td width=210 align=left valign=top><font color=#00008f>&nbsp;&nbsp;Город:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>При поиске по городу будут найдены все авторы, у которых выбранный город указан в регистрационной анкете, или работающие в организации, расположенной в этом городе</p>'></td><td width=15></td><td width=283 align=left valign=top><font color=#00008f>&nbsp;&nbsp;Страна:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>При поиске по стране будут найдены все авторы, у которых выбранная страна указана в регистрационной анкете, или работающие в организации, расположенной в этой стране</p>'></td></tr>
+<tr align=left valign=top>
+<td><div class="formfr"><select name="town" style="width:206px" class="input" onKeyPress="submit_enter(event)">
+<option value="" selected>
+
+<option value="Москва" >Москва&nbsp;&nbsp;(346484)
+
+<option value="Санкт-Петербург" >Санкт-Петербург&nbsp;&nbsp;(119878)
+
+<option value="Абакан" >Абакан&nbsp;&nbsp;(1030)
+
+<option value="Абовян" >Абовян&nbsp;&nbsp;(4)
+
+<option value="Агинское" >Агинское&nbsp;&nbsp;(8)
+
+<option value="Азов" >Азов&nbsp;&nbsp;(104)
+
+<option value="Айхал" >Айхал&nbsp;&nbsp;(4)
+
+<option value="Акбулак" >Акбулак&nbsp;&nbsp;(5)
+
+<option value="Аксай" >Аксай&nbsp;&nbsp;(22)
+
+<option value="Аксарайский" >Аксарайский&nbsp;&nbsp;(4)
+
+<option value="Актау" >Актау&nbsp;&nbsp;(32)
+
+<option value="Актобе" >Актобе&nbsp;&nbsp;(551)
+
+<option value="Алагир" >Алагир&nbsp;&nbsp;(11)
+
+<option value="Алатырь" >Алатырь&nbsp;&nbsp;(25)
+
+<option value="Александров" >Александров&nbsp;&nbsp;(36)
+
+<option value="Алексеевка" >Алексеевка&nbsp;&nbsp;(30)
+
+<option value="Алексин" >Алексин&nbsp;&nbsp;(7)
+
+<option value="Алмалыбак" >Алмалыбак&nbsp;&nbsp;(38)
+
+<option value="Алмалык" >Алмалык&nbsp;&nbsp;(8)
+
+<option value="Алматы" >Алматы&nbsp;&nbsp;(4460)
+
+<option value="Алушта" >Алушта&nbsp;&nbsp;(14)
+
+<option value="Алчевск" >Алчевск&nbsp;&nbsp;(234)
+
+<option value="Альметьевск" >Альметьевск&nbsp;&nbsp;(716)
+
+<option value="Амстердам" >Амстердам&nbsp;&nbsp;(4)
+
+<option value="Амурск" >Амурск&nbsp;&nbsp;(5)
+
+<option value="Анадырь" >Анадырь&nbsp;&nbsp;(50)
+
+<option value="Анапа" >Анапа&nbsp;&nbsp;(258)
+
+<option value="Ангарск" >Ангарск&nbsp;&nbsp;(461)
+
+<option value="Андижан" >Андижан&nbsp;&nbsp;(87)
+
+<option value="Андреевка" >Андреевка&nbsp;&nbsp;(4)
+
+<option value="Анжеро-Судженск" >Анжеро-Судженск&nbsp;&nbsp;(45)
+
+<option value="Анкара" >Анкара&nbsp;&nbsp;(7)
+
+<option value="Анн-Арбор" >Анн-Арбор&nbsp;&nbsp;(6)
+
+<option value="Анталья" >Анталья&nbsp;&nbsp;(4)
+
+<option value="Апатиты" >Апатиты&nbsp;&nbsp;(1289)
+
+<option value="Апрелевка" >Апрелевка&nbsp;&nbsp;(19)
+
+<option value="Ардахан" >Ардахан&nbsp;&nbsp;(4)
+
+<option value="Арзамас" >Арзамас&nbsp;&nbsp;(473)
+
+<option value="Аркадаг" >Аркадаг&nbsp;&nbsp;(5)
+
+<option value="Аркалык" >Аркалык&nbsp;&nbsp;(6)
+
+<option value="Армавир" >Армавир&nbsp;&nbsp;(697)
+
+<option value="Армянск" >Армянск&nbsp;&nbsp;(34)
+
+<option value="Арсеньев" >Арсеньев&nbsp;&nbsp;(7)
+
+<option value="Артем" >Артем&nbsp;&nbsp;(39)
+
+<option value="Архангельск" >Архангельск&nbsp;&nbsp;(4160)
+
+<option value="Архара" >Архара&nbsp;&nbsp;(8)
+
+<option value="Асбест" >Асбест&nbsp;&nbsp;(16)
+
+<option value="Асино" >Асино&nbsp;&nbsp;(4)
+
+<option value="Аскания-Нова" >Аскания-Нова&nbsp;&nbsp;(5)
+
+<option value="Астана" >Астана&nbsp;&nbsp;(1416)
+
+<option value="Астрахань" >Астрахань&nbsp;&nbsp;(4579)
+
+<option value="Атланта" >Атланта&nbsp;&nbsp;(7)
+
+<option value="Атырау" >Атырау&nbsp;&nbsp;(54)
+
+<option value="Афины" >Афины&nbsp;&nbsp;(8)
+
+<option value="Ахтубинск" >Ахтубинск&nbsp;&nbsp;(42)
+
+<option value="Ачинск" >Ачинск&nbsp;&nbsp;(52)
+
+<option value="Аша" >Аша&nbsp;&nbsp;(11)
+
+<option value="Ашдод" >Ашдод&nbsp;&nbsp;(5)
+
+<option value="Аштарак" >Аштарак&nbsp;&nbsp;(19)
+
+<option value="Ашхабад" >Ашхабад&nbsp;&nbsp;(78)
+
+<option value="Бавлы" >Бавлы&nbsp;&nbsp;(5)
+
+<option value="Багдад" >Багдад&nbsp;&nbsp;(9)
+
+<option value="Байконур" >Байконур&nbsp;&nbsp;(17)
+
+<option value="Баку" >Баку&nbsp;&nbsp;(1990)
+
+<option value="Балабаново" >Балабаново&nbsp;&nbsp;(14)
+
+<option value="Балаково" >Балаково&nbsp;&nbsp;(232)
+
+<option value="Балахна" >Балахна&nbsp;&nbsp;(12)
+
+<option value="Балашиха" >Балашиха&nbsp;&nbsp;(1492)
+
+<option value="Балашов" >Балашов&nbsp;&nbsp;(209)
+
+<option value="Бангкок" >Бангкок&nbsp;&nbsp;(4)
+
+<option value="Баня-Лука" >Баня-Лука&nbsp;&nbsp;(7)
+
+<option value="Барабинск" >Барабинск&nbsp;&nbsp;(6)
+
+<option value="Барановичи" >Барановичи&nbsp;&nbsp;(158)
+
+<option value="Барнаул" >Барнаул&nbsp;&nbsp;(7678)
+
+<option value="Барселона" >Барселона&nbsp;&nbsp;(4)
+
+<option value="Батайск" >Батайск&nbsp;&nbsp;(20)
+
+<option value="Баткен" >Баткен&nbsp;&nbsp;(77)
+
+<option value="Батуми" >Батуми&nbsp;&nbsp;(26)
+
+<option value="Батырево" >Батырево&nbsp;&nbsp;(11)
+
+<option value="Бахчисарай" >Бахчисарай&nbsp;&nbsp;(16)
+
+<option value="Безенчук" >Безенчук&nbsp;&nbsp;(48)
+
+<option value="Белая Церковь" >Белая Церковь&nbsp;&nbsp;(26)
+
+<option value="Белгород" >Белгород&nbsp;&nbsp;(7847)
+
+<option value="Белград" >Белград&nbsp;&nbsp;(45)
+
+<option value="Белебей" >Белебей&nbsp;&nbsp;(19)
+
+<option value="Белово" >Белово&nbsp;&nbsp;(73)
+
+<option value="Белогорка" >Белогорка&nbsp;&nbsp;(4)
+
+<option value="Белогорск" >Белогорск&nbsp;&nbsp;(6)
+
+<option value="Белокуриха" >Белокуриха&nbsp;&nbsp;(6)
+
+<option value="Белоозерский" >Белоозерский&nbsp;&nbsp;(16)
+
+<option value="Белорецк" >Белорецк&nbsp;&nbsp;(38)
+
+<option value="Белореченск" >Белореченск&nbsp;&nbsp;(26)
+
+<option value="Белосток" >Белосток&nbsp;&nbsp;(4)
+
+<option value="Белоярский" >Белоярский&nbsp;&nbsp;(5)
+
+<option value="Бельцы" >Бельцы&nbsp;&nbsp;(10)
+
+<option value="Бендеры" >Бендеры&nbsp;&nbsp;(44)
+
+<option value="Берген" >Берген&nbsp;&nbsp;(7)
+
+<option value="Бердск" >Бердск&nbsp;&nbsp;(45)
+
+<option value="Бердянск" >Бердянск&nbsp;&nbsp;(95)
+
+<option value="Бережаны" >Бережаны&nbsp;&nbsp;(7)
+
+<option value="Березники" >Березники&nbsp;&nbsp;(94)
+
+<option value="Березовский" >Березовский&nbsp;&nbsp;(12)
+
+<option value="Берлин" >Берлин&nbsp;&nbsp;(34)
+
+<option value="Бетесда" >Бетесда&nbsp;&nbsp;(8)
+
+<option value="Беэр-Шева" >Беэр-Шева&nbsp;&nbsp;(16)
+
+<option value="Бийск" >Бийск&nbsp;&nbsp;(673)
+
+<option value="Биокомбината" >Биокомбината&nbsp;&nbsp;(4)
+
+<option value="Бирмингем" >Бирмингем&nbsp;&nbsp;(4)
+
+<option value="Биробиджан" >Биробиджан&nbsp;&nbsp;(342)
+
+<option value="Бирск" >Бирск&nbsp;&nbsp;(212)
+
+<option value="Бишкек" >Бишкек&nbsp;&nbsp;(4899)
+
+<option value="Благовещенск" >Благовещенск&nbsp;&nbsp;(2384)
+
+<option value="Благоевград" >Благоевград&nbsp;&nbsp;(31)
+
+<option value="Бобруйск" >Бобруйск&nbsp;&nbsp;(12)
+
+<option value="Богородск" >Богородск&nbsp;&nbsp;(8)
+
+<option value="Бокситогорск" >Бокситогорск&nbsp;&nbsp;(8)
+
+<option value="Болгар" >Болгар&nbsp;&nbsp;(36)
+
+<option value="Большие Вязёмы" >Большие Вязёмы&nbsp;&nbsp;(178)
+
+<option value="Большой Камень" >Большой Камень&nbsp;&nbsp;(7)
+
+<option value="Бор" >Бор&nbsp;&nbsp;(15)
+
+<option value="Борисов" >Борисов&nbsp;&nbsp;(11)
+
+<option value="Борисовка" >Борисовка&nbsp;&nbsp;(8)
+
+<option value="Борисоглебск" >Борисоглебск&nbsp;&nbsp;(114)
+
+<option value="Боровичи" >Боровичи&nbsp;&nbsp;(8)
+
+<option value="Боровка" >Боровка&nbsp;&nbsp;(5)
+
+<option value="Боровляны" >Боровляны&nbsp;&nbsp;(28)
+
+<option value="Боровск" >Боровск&nbsp;&nbsp;(136)
+
+<option value="Борок" >Борок&nbsp;&nbsp;(431)
+
+<option value="Бостон" >Бостон&nbsp;&nbsp;(24)
+
+<option value="Ботаника" >Ботаника&nbsp;&nbsp;(7)
+
+<option value="Бохтар" >Бохтар&nbsp;&nbsp;(45)
+
+<option value="Бохум" >Бохум&nbsp;&nbsp;(7)
+
+<option value="Братислава" >Братислава&nbsp;&nbsp;(12)
+
+<option value="Братск" >Братск&nbsp;&nbsp;(544)
+
+<option value="Бремен" >Бремен&nbsp;&nbsp;(6)
+
+<option value="Брест" >Брест&nbsp;&nbsp;(311)
+
+<option value="Брно" >Брно&nbsp;&nbsp;(7)
+
+<option value="Бровары" >Бровары&nbsp;&nbsp;(6)
+
+<option value="Бронницы" >Бронницы&nbsp;&nbsp;(29)
+
+<option value="Брыкин Бор" >Брыкин Бор&nbsp;&nbsp;(16)
+
+<option value="Брюссель" >Брюссель&nbsp;&nbsp;(4)
+
+<option value="Брянск" >Брянск&nbsp;&nbsp;(2924)
+
+<option value="Бугульма" >Бугульма&nbsp;&nbsp;(244)
+
+<option value="Бугуруслан" >Бугуруслан&nbsp;&nbsp;(9)
+
+<option value="Будапешт" >Будапешт&nbsp;&nbsp;(23)
+
+<option value="Буденновск" >Буденновск&nbsp;&nbsp;(65)
+
+<option value="Бузулук" >Бузулук&nbsp;&nbsp;(105)
+
+<option value="Буйнакск" >Буйнакск&nbsp;&nbsp;(11)
+
+<option value="Бургас" >Бургас&nbsp;&nbsp;(40)
+
+<option value="Бустон" >Бустон&nbsp;&nbsp;(17)
+
+<option value="Бухара" >Бухара&nbsp;&nbsp;(133)
+
+<option value="Бухарест" >Бухарест&nbsp;&nbsp;(5)
+
+<option value="Быково" >Быково&nbsp;&nbsp;(148)
+
+<option value="Валдай" >Валдай&nbsp;&nbsp;(23)
+
+<option value="Валуйки" >Валуйки&nbsp;&nbsp;(8)
+
+<option value="Ванадзор" >Ванадзор&nbsp;&nbsp;(20)
+
+<option value="Ванкувер" >Ванкувер&nbsp;&nbsp;(5)
+
+<option value="Варварино" >Варварино&nbsp;&nbsp;(5)
+
+<option value="Варна" >Варна&nbsp;&nbsp;(253)
+
+<option value="Варшава" >Варшава&nbsp;&nbsp;(26)
+
+<option value="Вашингтон" >Вашингтон&nbsp;&nbsp;(25)
+
+<option value="Великие Луки" >Великие Луки&nbsp;&nbsp;(311)
+
+<option value="Великий Новгород" >Великий Новгород&nbsp;&nbsp;(1413)
+
+<option value="Велико Тырново" >Велико Тырново&nbsp;&nbsp;(76)
+
+<option value="Велико-Тырново" >Велико-Тырново&nbsp;&nbsp;(71)
+
+<option value="Вельск" >Вельск&nbsp;&nbsp;(5)
+
+<option value="Вена" >Вена&nbsp;&nbsp;(27)
+
+<option value="Верея" >Верея&nbsp;&nbsp;(60)
+
+<option value="Верхний Уфалей" >Верхний Уфалей&nbsp;&nbsp;(8)
+
+<option value="Верхняя Пышма" >Верхняя Пышма&nbsp;&nbsp;(75)
+
+<option value="Верхняя Салда" >Верхняя Салда&nbsp;&nbsp;(27)
+
+<option value="Вёшенская" >Вёшенская&nbsp;&nbsp;(16)
+
+<option value="Видное" >Видное&nbsp;&nbsp;(194)
+
+<option value="Вильнюс" >Вильнюс&nbsp;&nbsp;(275)
+
+<option value="Вилючинск" >Вилючинск&nbsp;&nbsp;(6)
+
+<option value="Виндзор" >Виндзор&nbsp;&nbsp;(4)
+
+<option value="Винница" >Винница&nbsp;&nbsp;(232)
+
+<option value="Витебск" >Витебск&nbsp;&nbsp;(1915)
+
+<option value="Владивосток" >Владивосток&nbsp;&nbsp;(9624)
+
+<option value="Владикавказ" >Владикавказ&nbsp;&nbsp;(3638)
+
+<option value="Владимир" >Владимир&nbsp;&nbsp;(3116)
+
+<option value="Власиха" >Власиха&nbsp;&nbsp;(9)
+
+<option value="Вниисс" >Вниисс&nbsp;&nbsp;(53)
+
+<option value="ВНИИССОК" >ВНИИССОК&nbsp;&nbsp;(379)
+
+<option value="Воейково" >Воейково&nbsp;&nbsp;(23)
+
+<option value="Волгоград" >Волгоград&nbsp;&nbsp;(12951)
+
+<option value="Волгодонск" >Волгодонск&nbsp;&nbsp;(287)
+
+<option value="Волжск" >Волжск&nbsp;&nbsp;(19)
+
+<option value="Волжский" >Волжский&nbsp;&nbsp;(797)
+
+<option value="Вологда" >Вологда&nbsp;&nbsp;(2105)
+
+<option value="Волоколамск" >Волоколамск&nbsp;&nbsp;(18)
+
+<option value="Волхов" >Волхов&nbsp;&nbsp;(17)
+
+<option value="Вольгинский" >Вольгинский&nbsp;&nbsp;(238)
+
+<option value="Вольск" >Вольск&nbsp;&nbsp;(362)
+
+<option value="Воркута" >Воркута&nbsp;&nbsp;(43)
+
+<option value="Воровского" >Воровского&nbsp;&nbsp;(5)
+
+<option value="Воронеж" >Воронеж&nbsp;&nbsp;(17303)
+
+<option value="Воротынец" >Воротынец&nbsp;&nbsp;(17)
+
+<option value="Воскресенск" >Воскресенск&nbsp;&nbsp;(28)
+
+<option value="Восток Лансинг" >Восток Лансинг&nbsp;&nbsp;(4)
+
+<option value="Восточный" >Восточный&nbsp;&nbsp;(5)
+
+<option value="Воткинск" >Воткинск&nbsp;&nbsp;(68)
+
+<option value="Вроцлав" >Вроцлав&nbsp;&nbsp;(4)
+
+<option value="Всеволожск" >Всеволожск&nbsp;&nbsp;(48)
+
+<option value="Вунгтау" >Вунгтау&nbsp;&nbsp;(7)
+
+<option value="Выборг" >Выборг&nbsp;&nbsp;(87)
+
+<option value="Выкса" >Выкса&nbsp;&nbsp;(64)
+
+<option value="Вышний Волочек" >Вышний Волочек&nbsp;&nbsp;(10)
+
+<option value="Вязьма" >Вязьма&nbsp;&nbsp;(42)
+
+<option value="Вяткино" >Вяткино&nbsp;&nbsp;(27)
+
+<option value="Галич" >Галич&nbsp;&nbsp;(4)
+
+<option value="Гамбург" >Гамбург&nbsp;&nbsp;(15)
+
+<option value="Ганновер" >Ганновер&nbsp;&nbsp;(6)
+
+<option value="Гарм" >Гарм&nbsp;&nbsp;(34)
+
+<option value="Гатчина" >Гатчина&nbsp;&nbsp;(1175)
+
+<option value="Гафуров" >Гафуров&nbsp;&nbsp;(4)
+
+<option value="Гвадалахара" >Гвадалахара&nbsp;&nbsp;(4)
+
+<option value="Гвардейский" >Гвардейский&nbsp;&nbsp;(17)
+
+<option value="Гданьск" >Гданьск&nbsp;&nbsp;(9)
+
+<option value="Гейдельберг" >Гейдельберг&nbsp;&nbsp;(6)
+
+<option value="Геленджик" >Геленджик&nbsp;&nbsp;(225)
+
+<option value="Геническ" >Геническ&nbsp;&nbsp;(35)
+
+<option value="Георгиевск" >Георгиевск&nbsp;&nbsp;(41)
+
+<option value="Гетеборг" >Гетеборг&nbsp;&nbsp;(5)
+
+<option value="Геттинген" >Геттинген&nbsp;&nbsp;(6)
+
+<option value="Гжель" >Гжель&nbsp;&nbsp;(8)
+
+<option value="Глазов" >Глазов&nbsp;&nbsp;(244)
+
+<option value="Глеваха" >Глеваха&nbsp;&nbsp;(20)
+
+<option value="Глухов" >Глухов&nbsp;&nbsp;(10)
+
+<option value="Голицыно" >Голицыно&nbsp;&nbsp;(38)
+
+<option value="Гомель" >Гомель&nbsp;&nbsp;(2521)
+
+<option value="Гонконг" >Гонконг&nbsp;&nbsp;(5)
+
+<option value="Горбунки" >Горбунки&nbsp;&nbsp;(9)
+
+<option value="Горис" >Горис&nbsp;&nbsp;(8)
+
+<option value="Горки" >Горки&nbsp;&nbsp;(593)
+
+<option value="Горловка" >Горловка&nbsp;&nbsp;(195)
+
+<option value="Горно-Алтайск" >Горно-Алтайск&nbsp;&nbsp;(557)
+
+<option value="Горно-Таежное" >Горно-Таежное&nbsp;&nbsp;(16)
+
+<option value="Городец" >Городец&nbsp;&nbsp;(5)
+
+<option value="Горький" >Горький&nbsp;&nbsp;(130)
+
+<option value="Горячий Ключ" >Горячий Ключ&nbsp;&nbsp;(7)
+
+<option value="Гранада" >Гранада&nbsp;&nbsp;(8)
+
+<option value="Гренобль" >Гренобль&nbsp;&nbsp;(4)
+
+<option value="Гродно" >Гродно&nbsp;&nbsp;(1460)
+
+<option value="Грозный" >Грозный&nbsp;&nbsp;(1994)
+
+<option value="Грязи" >Грязи&nbsp;&nbsp;(5)
+
+<option value="Гуанчжоу" >Гуанчжоу&nbsp;&nbsp;(10)
+
+<option value="Губкин" >Губкин&nbsp;&nbsp;(88)
+
+<option value="Губкинский" >Губкинский&nbsp;&nbsp;(7)
+
+<option value="Гудермес" >Гудермес&nbsp;&nbsp;(4)
+
+<option value="Гуково" >Гуково&nbsp;&nbsp;(6)
+
+<option value="Гулистан" >Гулистан&nbsp;&nbsp;(11)
+
+<option value="Гулькевичи" >Гулькевичи&nbsp;&nbsp;(26)
+
+<option value="Гусев" >Гусев&nbsp;&nbsp;(5)
+
+<option value="Гусиноозерск" >Гусиноозерск&nbsp;&nbsp;(4)
+
+<option value="Гусь-Хрустальный" >Гусь-Хрустальный&nbsp;&nbsp;(33)
+
+<option value="Гюмри" >Гюмри&nbsp;&nbsp;(18)
+
+<option value="Гянджа" >Гянджа&nbsp;&nbsp;(41)
+
+<option value="Дангара" >Дангара&nbsp;&nbsp;(23)
+
+<option value="Данки" >Данки&nbsp;&nbsp;(10)
+
+<option value="Даугавпилс" >Даугавпилс&nbsp;&nbsp;(16)
+
+<option value="Дедовск" >Дедовск&nbsp;&nbsp;(67)
+
+<option value="Дейли-Сити" >Дейли-Сити&nbsp;&nbsp;(6)
+
+<option value="Делфт" >Делфт&nbsp;&nbsp;(4)
+
+<option value="Денау" >Денау&nbsp;&nbsp;(4)
+
+<option value="Дербент" >Дербент&nbsp;&nbsp;(82)
+
+<option value="Десногорск" >Десногорск&nbsp;&nbsp;(4)
+
+<option value="Джалал-Абад" >Джалал-Абад&nbsp;&nbsp;(163)
+
+<option value="Джанай" >Джанай&nbsp;&nbsp;(7)
+
+<option value="Джанкой" >Джанкой&nbsp;&nbsp;(4)
+
+<option value="Джизак" >Джизак&nbsp;&nbsp;(18)
+
+<option value="Дзержинск" >Дзержинск&nbsp;&nbsp;(208)
+
+<option value="Дзержинский" >Дзержинский&nbsp;&nbsp;(103)
+
+<option value="Дивногорск" >Дивногорск&nbsp;&nbsp;(7)
+
+<option value="Дивово" >Дивово&nbsp;&nbsp;(124)
+
+<option value="Димитровград" >Димитровград&nbsp;&nbsp;(720)
+
+<option value="Динская" >Динская&nbsp;&nbsp;(10)
+
+<option value="Дмитров" >Дмитров&nbsp;&nbsp;(178)
+
+<option value="Днепр" >Днепр&nbsp;&nbsp;(742)
+
+<option value="Днепродзержинск" >Днепродзержинск&nbsp;&nbsp;(19)
+
+<option value="Днепропетровск" >Днепропетровск&nbsp;&nbsp;(942)
+
+<option value="Долгопрудный" >Долгопрудный&nbsp;&nbsp;(2222)
+
+<option value="Домодедово" >Домодедово&nbsp;&nbsp;(408)
+
+<option value="Донецк" >Донецк&nbsp;&nbsp;(4907)
+
+<option value="Донской" >Донской&nbsp;&nbsp;(4)
+
+<option value="Дрезден" >Дрезден&nbsp;&nbsp;(9)
+
+<option value="Дрогобыч" >Дрогобыч&nbsp;&nbsp;(8)
+
+<option value="Дубляны" >Дубляны&nbsp;&nbsp;(42)
+
+<option value="Дубна" >Дубна&nbsp;&nbsp;(2710)
+
+<option value="Дубровицы" >Дубровицы&nbsp;&nbsp;(400)
+
+<option value="Дудинка" >Дудинка&nbsp;&nbsp;(30)
+
+<option value="Душанбе" >Душанбе&nbsp;&nbsp;(5622)
+
+<option value="Дятьково" >Дятьково&nbsp;&nbsp;(4)
+
+<option value="Евпатория" >Евпатория&nbsp;&nbsp;(121)
+
+<option value="Егорьевск" >Егорьевск&nbsp;&nbsp;(42)
+
+<option value="Ейск" >Ейск&nbsp;&nbsp;(12)
+
+<option value="Екатеринбург" >Екатеринбург&nbsp;&nbsp;(24583)
+
+<option value="Елабуга" >Елабуга&nbsp;&nbsp;(280)
+
+<option value="Елатьма" >Елатьма&nbsp;&nbsp;(7)
+
+<option value="Елгава" >Елгава&nbsp;&nbsp;(30)
+
+<option value="Елец" >Елец&nbsp;&nbsp;(872)
+
+<option value="Елизово" >Елизово&nbsp;&nbsp;(28)
+
+<option value="Енакиево" >Енакиево&nbsp;&nbsp;(14)
+
+<option value="Енисейск" >Енисейск&nbsp;&nbsp;(6)
+
+<option value="Ереван" >Ереван&nbsp;&nbsp;(1328)
+
+<option value="Ессентуки" >Ессентуки&nbsp;&nbsp;(324)
+
+<option value="Ефремов" >Ефремов&nbsp;&nbsp;(8)
+
+<option value="Жалал-Абад" >Жалал-Абад&nbsp;&nbsp;(29)
+
+<option value="Жезказган" >Жезказган&nbsp;&nbsp;(8)
+
+<option value="Железноводск" >Железноводск&nbsp;&nbsp;(79)
+
+<option value="Железногорск" >Железногорск&nbsp;&nbsp;(409)
+
+<option value="Железнодорожный" >Железнодорожный&nbsp;&nbsp;(57)
+
+<option value="Женева" >Женева&nbsp;&nbsp;(22)
+
+<option value="Жигулевск" >Жигулевск&nbsp;&nbsp;(19)
+
+<option value="Жилина" >Жилина&nbsp;&nbsp;(86)
+
+<option value="Житомир" >Житомир&nbsp;&nbsp;(65)
+
+<option value="Жлобин" >Жлобин&nbsp;&nbsp;(9)
+
+<option value="Жодино" >Жодино&nbsp;&nbsp;(165)
+
+<option value="Жуков" >Жуков&nbsp;&nbsp;(7)
+
+<option value="Жуковский" >Жуковский&nbsp;&nbsp;(1333)
+
+<option value="Заволжье" >Заволжье&nbsp;&nbsp;(5)
+
+<option value="Загорск" >Загорск&nbsp;&nbsp;(7)
+
+<option value="Заинск" >Заинск&nbsp;&nbsp;(4)
+
+<option value="Заокский" >Заокский&nbsp;&nbsp;(18)
+
+<option value="Заповедник" >Заповедник&nbsp;&nbsp;(18)
+
+<option value="Заповедное" >Заповедное&nbsp;&nbsp;(4)
+
+<option value="Заповедный" >Заповедный&nbsp;&nbsp;(33)
+
+<option value="Запорожье" >Запорожье&nbsp;&nbsp;(298)
+
+<option value="Зарайск" >Зарайск&nbsp;&nbsp;(7)
+
+<option value="Заречный" >Заречный&nbsp;&nbsp;(96)
+
+<option value="Заря" >Заря&nbsp;&nbsp;(4)
+
+<option value="Звездный" >Звездный&nbsp;&nbsp;(4)
+
+<option value="Звездный Городок" >Звездный Городок&nbsp;&nbsp;(85)
+
+<option value="Звенигород" >Звенигород&nbsp;&nbsp;(20)
+
+<option value="Зеленогорск" >Зеленогорск&nbsp;&nbsp;(10)
+
+<option value="Зеленоград" >Зеленоград&nbsp;&nbsp;(653)
+
+<option value="Зеленодольск" >Зеленодольск&nbsp;&nbsp;(39)
+
+<option value="Зеленое" >Зеленое&nbsp;&nbsp;(5)
+
+<option value="Зеленый" >Зеленый&nbsp;&nbsp;(106)
+
+<option value="Зерноград" >Зерноград&nbsp;&nbsp;(576)
+
+<option value="Зимовники" >Зимовники&nbsp;&nbsp;(5)
+
+<option value="Златоуст" >Златоуст&nbsp;&nbsp;(104)
+
+<option value="Знаменск" >Знаменск&nbsp;&nbsp;(18)
+
+<option value="Ивангород" >Ивангород&nbsp;&nbsp;(7)
+
+<option value="Иваново" >Иваново&nbsp;&nbsp;(5283)
+
+<option value="Ивано-Франковск" >Ивано-Франковск&nbsp;&nbsp;(94)
+
+<option value="Ивантеевка" >Ивантеевка&nbsp;&nbsp;(70)
+
+<option value="Иджеван" >Иджеван&nbsp;&nbsp;(4)
+
+<option value="Иерусалим" >Иерусалим&nbsp;&nbsp;(15)
+
+<option value="Ижевск" >Ижевск&nbsp;&nbsp;(5415)
+
+<option value="Излучинск" >Излучинск&nbsp;&nbsp;(4)
+
+<option value="Измаил" >Измаил&nbsp;&nbsp;(4)
+
+<option value="Иннополис" >Иннополис&nbsp;&nbsp;(41)
+
+<option value="Инта" >Инта&nbsp;&nbsp;(6)
+
+<option value="Ирбит" >Ирбит&nbsp;&nbsp;(10)
+
+<option value="Иркутск" >Иркутск&nbsp;&nbsp;(14078)
+
+<option value="Ирпень" >Ирпень&nbsp;&nbsp;(18)
+
+<option value="Исилькуль" >Исилькуль&nbsp;&nbsp;(5)
+
+<option value="Искитим" >Искитим&nbsp;&nbsp;(4)
+
+<option value="Истра" >Истра&nbsp;&nbsp;(167)
+
+<option value="Ишим" >Ишим&nbsp;&nbsp;(186)
+
+<option value="Ишимбай" >Ишимбай&nbsp;&nbsp;(21)
+
+<option value="Йена" >Йена&nbsp;&nbsp;(4)
+
+<option value="Йошкар-Ола" >Йошкар-Ола&nbsp;&nbsp;(2387)
+
+<option value="Йоэнсуу" >Йоэнсуу&nbsp;&nbsp;(7)
+
+<option value="Кавказский" >Кавказский&nbsp;&nbsp;(5)
+
+<option value="Казань" >Казань&nbsp;&nbsp;(24806)
+
+<option value="Каир" >Каир&nbsp;&nbsp;(5)
+
+<option value="Кайнар" >Кайнар&nbsp;&nbsp;(16)
+
+<option value="Кайсери" >Кайсери&nbsp;&nbsp;(6)
+
+<option value="Калач-на-Дону" >Калач-на-Дону&nbsp;&nbsp;(4)
+
+<option value="Калининград" >Калининград&nbsp;&nbsp;(3726)
+
+<option value="Калинковичи" >Калинковичи&nbsp;&nbsp;(5)
+
+<option value="Калуга" >Калуга&nbsp;&nbsp;(2168)
+
+<option value="Каменец-Подольский" >Каменец-Подольский&nbsp;&nbsp;(18)
+
+<option value="Каменка" >Каменка&nbsp;&nbsp;(4)
+
+<option value="Каменная Степь" >Каменная Степь&nbsp;&nbsp;(13)
+
+<option value="Каменское" >Каменское&nbsp;&nbsp;(25)
+
+<option value="Каменск-Уральский" >Каменск-Уральский&nbsp;&nbsp;(59)
+
+<option value="Каменск-Шахтинский" >Каменск-Шахтинский&nbsp;&nbsp;(56)
+
+<option value="Камень-Рыболов" >Камень-Рыболов&nbsp;&nbsp;(16)
+
+<option value="Камызяк" >Камызяк&nbsp;&nbsp;(52)
+
+<option value="Камышин" >Камышин&nbsp;&nbsp;(151)
+
+<option value="Канаш" >Канаш&nbsp;&nbsp;(8)
+
+<option value="Кандалакша" >Кандалакша&nbsp;&nbsp;(8)
+
+<option value="Канск" >Канск&nbsp;&nbsp;(10)
+
+<option value="Кант" >Кант&nbsp;&nbsp;(7)
+
+<option value="Карабулак" >Карабулак&nbsp;&nbsp;(4)
+
+<option value="Караваево" >Караваево&nbsp;&nbsp;(4)
+
+<option value="Караганда" >Караганда&nbsp;&nbsp;(1455)
+
+<option value="Каракол" >Каракол&nbsp;&nbsp;(158)
+
+<option value="Карачаевск" >Карачаевск&nbsp;&nbsp;(398)
+
+<option value="Карачев" >Карачев&nbsp;&nbsp;(11)
+
+<option value="Каргополь" >Каргополь&nbsp;&nbsp;(8)
+
+<option value="Карлсруэ" >Карлсруэ&nbsp;&nbsp;(9)
+
+<option value="Карши" >Карши&nbsp;&nbsp;(60)
+
+<option value="Каспийск" >Каспийск&nbsp;&nbsp;(37)
+
+<option value="Катовице" >Катовице&nbsp;&nbsp;(4)
+
+<option value="Каунас" >Каунас&nbsp;&nbsp;(104)
+
+<option value="Качканар" >Качканар&nbsp;&nbsp;(6)
+
+<option value="Кашира" >Кашира&nbsp;&nbsp;(10)
+
+<option value="Кембридж" >Кембридж&nbsp;&nbsp;(20)
+
+<option value="Кемерово" >Кемерово&nbsp;&nbsp;(6905)
+
+<option value="Керчь" >Керчь&nbsp;&nbsp;(381)
+
+<option value="Киев" >Киев&nbsp;&nbsp;(8696)
+
+<option value="Кизляр" >Кизляр&nbsp;&nbsp;(13)
+
+<option value="Ким" >Ким&nbsp;&nbsp;(5)
+
+<option value="Кимры" >Кимры&nbsp;&nbsp;(15)
+
+<option value="Кингисепп" >Кингисепп&nbsp;&nbsp;(8)
+
+<option value="Кинель" >Кинель&nbsp;&nbsp;(110)
+
+<option value="Кинешма" >Кинешма&nbsp;&nbsp;(10)
+
+<option value="Кириллов" >Кириллов&nbsp;&nbsp;(4)
+
+<option value="Кириши" >Кириши&nbsp;&nbsp;(32)
+
+<option value="Киров" >Киров&nbsp;&nbsp;(3666)
+
+<option value="Кировоград" >Кировоград&nbsp;&nbsp;(97)
+
+<option value="Кирово-Чепецк" >Кирово-Чепецк&nbsp;&nbsp;(10)
+
+<option value="Кировск" >Кировск&nbsp;&nbsp;(60)
+
+<option value="Киселевск" >Киселевск&nbsp;&nbsp;(10)
+
+<option value="Кислино" >Кислино&nbsp;&nbsp;(28)
+
+<option value="Кисловка" >Кисловка&nbsp;&nbsp;(4)
+
+<option value="Кисловодск" >Кисловодск&nbsp;&nbsp;(204)
+
+<option value="Кишинев" >Кишинев&nbsp;&nbsp;(473)
+
+<option value="Клайпеда" >Клайпеда&nbsp;&nbsp;(4)
+
+<option value="Климовск" >Климовск&nbsp;&nbsp;(25)
+
+<option value="Клин" >Клин&nbsp;&nbsp;(124)
+
+<option value="Клинцы" >Клинцы&nbsp;&nbsp;(4)
+
+<option value="Княгинино" >Княгинино&nbsp;&nbsp;(582)
+
+<option value="Ковдор" >Ковдор&nbsp;&nbsp;(6)
+
+<option value="Ковров" >Ковров&nbsp;&nbsp;(179)
+
+<option value="Ковылкино" >Ковылкино&nbsp;&nbsp;(11)
+
+<option value="Когалым" >Когалым&nbsp;&nbsp;(59)
+
+<option value="Коканд" >Коканд&nbsp;&nbsp;(15)
+
+<option value="Кокино" >Кокино&nbsp;&nbsp;(25)
+
+<option value="Кокшетау" >Кокшетау&nbsp;&nbsp;(96)
+
+<option value="Коломна" >Коломна&nbsp;&nbsp;(815)
+
+<option value="Колпашево" >Колпашево&nbsp;&nbsp;(9)
+
+<option value="Колпино" >Колпино&nbsp;&nbsp;(16)
+
+<option value="Колтуши" >Колтуши&nbsp;&nbsp;(5)
+
+<option value="Кольцово" >Кольцово&nbsp;&nbsp;(608)
+
+<option value="Кольчугино" >Кольчугино&nbsp;&nbsp;(5)
+
+<option value="Комсомольск-на-Амуре" >Комсомольск-на-Амуре&nbsp;&nbsp;(905)
+
+<option value="Конаково" >Конаково&nbsp;&nbsp;(17)
+
+<option value="Кондопога" >Кондопога&nbsp;&nbsp;(4)
+
+<option value="Копейск" >Копейск&nbsp;&nbsp;(35)
+
+<option value="Коренево" >Коренево&nbsp;&nbsp;(23)
+
+<option value="Коркино" >Коркино&nbsp;&nbsp;(6)
+
+<option value="Королев" >Королев&nbsp;&nbsp;(1490)
+
+<option value="Корсаков" >Корсаков&nbsp;&nbsp;(5)
+
+<option value="Коряжма" >Коряжма&nbsp;&nbsp;(18)
+
+<option value="Костанай" >Костанай&nbsp;&nbsp;(270)
+
+<option value="Кострома" >Кострома&nbsp;&nbsp;(1581)
+
+<option value="Косшы" >Косшы&nbsp;&nbsp;(36)
+
+<option value="Котельники" >Котельники&nbsp;&nbsp;(44)
+
+<option value="Котлас" >Котлас&nbsp;&nbsp;(25)
+
+<option value="Котовск" >Котовск&nbsp;&nbsp;(7)
+
+<option value="Краков" >Краков&nbsp;&nbsp;(15)
+
+<option value="Краматорск" >Краматорск&nbsp;&nbsp;(83)
+
+<option value="Красково" >Красково&nbsp;&nbsp;(340)
+
+<option value="Красноармейск" >Красноармейск&nbsp;&nbsp;(22)
+
+<option value="Красногорск" >Красногорск&nbsp;&nbsp;(367)
+
+<option value="Краснодар" >Краснодар&nbsp;&nbsp;(17988)
+
+<option value="Краснодон" >Краснодон&nbsp;&nbsp;(6)
+
+<option value="Краснознаменск" >Краснознаменск&nbsp;&nbsp;(69)
+
+<option value="Краснокаменск" >Краснокаменск&nbsp;&nbsp;(17)
+
+<option value="Краснокамск" >Краснокамск&nbsp;&nbsp;(8)
+
+<option value="Краснообск" >Краснообск&nbsp;&nbsp;(159)
+
+<option value="Краснослободск" >Краснослободск&nbsp;&nbsp;(5)
+
+<option value="Краснотурьинск" >Краснотурьинск&nbsp;&nbsp;(12)
+
+<option value="Красноуфимск" >Красноуфимск&nbsp;&nbsp;(11)
+
+<option value="Красноярск" >Красноярск&nbsp;&nbsp;(13341)
+
+<option value="Кременчуг" >Кременчуг&nbsp;&nbsp;(34)
+
+<option value="Кривой Рог" >Кривой Рог&nbsp;&nbsp;(96)
+
+<option value="Кронштадт" >Кронштадт&nbsp;&nbsp;(6)
+
+<option value="Кропивницкий" >Кропивницкий&nbsp;&nbsp;(15)
+
+<option value="Кропоткин" >Кропоткин&nbsp;&nbsp;(20)
+
+<option value="Крымск" >Крымск&nbsp;&nbsp;(19)
+
+<option value="Кстово" >Кстово&nbsp;&nbsp;(36)
+
+<option value="Кубинка" >Кубинка&nbsp;&nbsp;(19)
+
+<option value="Кудрово" >Кудрово&nbsp;&nbsp;(4)
+
+<option value="Кудымкар" >Кудымкар&nbsp;&nbsp;(4)
+
+<option value="Кузнецк" >Кузнецк&nbsp;&nbsp;(9)
+
+<option value="Кузьмоловский" >Кузьмоловский&nbsp;&nbsp;(166)
+
+<option value="Куйбышев" >Куйбышев&nbsp;&nbsp;(131)
+
+<option value="Куйган-Яр" >Куйган-Яр&nbsp;&nbsp;(6)
+
+<option value="Кулебаки" >Кулебаки&nbsp;&nbsp;(7)
+
+<option value="Куляб" >Куляб&nbsp;&nbsp;(68)
+
+<option value="Кумертау" >Кумертау&nbsp;&nbsp;(90)
+
+<option value="Кунгур" >Кунгур&nbsp;&nbsp;(10)
+
+<option value="Купавна" >Купавна&nbsp;&nbsp;(28)
+
+<option value="Курган" >Курган&nbsp;&nbsp;(1497)
+
+<option value="Курган-тюбе" >Курган-тюбе&nbsp;&nbsp;(62)
+
+<option value="Куровское" >Куровское&nbsp;&nbsp;(4)
+
+<option value="Курск" >Курск&nbsp;&nbsp;(6160)
+
+<option value="Курчатов" >Курчатов&nbsp;&nbsp;(38)
+
+<option value="Кустанай" >Кустанай&nbsp;&nbsp;(7)
+
+<option value="Кутаиси" >Кутаиси&nbsp;&nbsp;(19)
+
+<option value="Кушва" >Кушва&nbsp;&nbsp;(4)
+
+<option value="Кызыл" >Кызыл&nbsp;&nbsp;(793)
+
+<option value="Кызыл-Кия" >Кызыл-Кия&nbsp;&nbsp;(41)
+
+<option value="Кызылорда" >Кызылорда&nbsp;&nbsp;(123)
+
+<option value="Кыштым" >Кыштым&nbsp;&nbsp;(23)
+
+<option value="Лабинск" >Лабинск&nbsp;&nbsp;(6)
+
+<option value="Лабытнанги" >Лабытнанги&nbsp;&nbsp;(13)
+
+<option value="Лангепас" >Лангепас&nbsp;&nbsp;(10)
+
+<option value="Ланьчжоу" >Ланьчжоу&nbsp;&nbsp;(6)
+
+<option value="Лаппеенранта" >Лаппеенранта&nbsp;&nbsp;(5)
+
+<option value="Лаппеэнранта" >Лаппеэнранта&nbsp;&nbsp;(4)
+
+<option value="Лафборо" >Лафборо&nbsp;&nbsp;(4)
+
+<option value="Лебедянь" >Лебедянь&nbsp;&nbsp;(4)
+
+<option value="Левен" >Левен&nbsp;&nbsp;(6)
+
+<option value="Лёвен" >Лёвен&nbsp;&nbsp;(5)
+
+<option value="Лейден" >Лейден&nbsp;&nbsp;(4)
+
+<option value="Ленинградская" >Ленинградская&nbsp;&nbsp;(31)
+
+<option value="Лениногорск" >Лениногорск&nbsp;&nbsp;(19)
+
+<option value="Ленинский" >Ленинский&nbsp;&nbsp;(13)
+
+<option value="Ленинск-Кузнецкий" >Ленинск-Кузнецкий&nbsp;&nbsp;(55)
+
+<option value="Ленкорань" >Ленкорань&nbsp;&nbsp;(4)
+
+<option value="Лермонтов" >Лермонтов&nbsp;&nbsp;(17)
+
+<option value="Лесниково" >Лесниково&nbsp;&nbsp;(40)
+
+<option value="Лесной" >Лесной&nbsp;&nbsp;(51)
+
+<option value="Лесной Городок" >Лесной Городок&nbsp;&nbsp;(9)
+
+<option value="Лесные Поляны" >Лесные Поляны&nbsp;&nbsp;(239)
+
+<option value="Лесосибирск" >Лесосибирск&nbsp;&nbsp;(93)
+
+<option value="Ливны" >Ливны&nbsp;&nbsp;(19)
+
+<option value="Лида" >Лида&nbsp;&nbsp;(7)
+
+<option value="Ликино-Дулево" >Ликино-Дулево&nbsp;&nbsp;(4)
+
+<option value="Линчепинг" >Линчепинг&nbsp;&nbsp;(4)
+
+<option value="Липецк" >Липецк&nbsp;&nbsp;(2739)
+
+<option value="Лиски" >Лиски&nbsp;&nbsp;(6)
+
+<option value="Лиссабон" >Лиссабон&nbsp;&nbsp;(6)
+
+<option value="Листвянка" >Листвянка&nbsp;&nbsp;(27)
+
+<option value="Лобня" >Лобня&nbsp;&nbsp;(450)
+
+<option value="Лодейное Поле" >Лодейное Поле&nbsp;&nbsp;(8)
+
+<option value="Лодзь" >Лодзь&nbsp;&nbsp;(4)
+
+<option value="Лозанна" >Лозанна&nbsp;&nbsp;(4)
+
+<option value="Ломоносов" >Ломоносов&nbsp;&nbsp;(15)
+
+<option value="Лондон" >Лондон&nbsp;&nbsp;(32)
+
+<option value="Лос-Аламос" >Лос-Аламос&nbsp;&nbsp;(4)
+
+<option value="Лос-Анджелес" >Лос-Анджелес&nbsp;&nbsp;(8)
+
+<option value="Лосино-Петровский" >Лосино-Петровский&nbsp;&nbsp;(12)
+
+<option value="Луга" >Луга&nbsp;&nbsp;(42)
+
+<option value="Луганск" >Луганск&nbsp;&nbsp;(1592)
+
+<option value="Лунд" >Лунд&nbsp;&nbsp;(6)
+
+<option value="Лунино" >Лунино&nbsp;&nbsp;(34)
+
+<option value="Луховицы" >Луховицы&nbsp;&nbsp;(9)
+
+<option value="Луцк" >Луцк&nbsp;&nbsp;(61)
+
+<option value="Лысково" >Лысково&nbsp;&nbsp;(8)
+
+<option value="Лысьва" >Лысьва&nbsp;&nbsp;(56)
+
+<option value="Лыткарино" >Лыткарино&nbsp;&nbsp;(103)
+
+<option value="Львов" >Львов&nbsp;&nbsp;(857)
+
+<option value="Льгов" >Льгов&nbsp;&nbsp;(5)
+
+<option value="Люберцы" >Люберцы&nbsp;&nbsp;(1295)
+
+<option value="Любучаны" >Любучаны&nbsp;&nbsp;(21)
+
+<option value="Магадан" >Магадан&nbsp;&nbsp;(698)
+
+<option value="Магас" >Магас&nbsp;&nbsp;(361)
+
+<option value="Магнитогорск" >Магнитогорск&nbsp;&nbsp;(3185)
+
+<option value="Мадисон" >Мадисон&nbsp;&nbsp;(6)
+
+<option value="Мадрид" >Мадрид&nbsp;&nbsp;(7)
+
+<option value="Майами" >Майами&nbsp;&nbsp;(5)
+
+<option value="Майкоп" >Майкоп&nbsp;&nbsp;(1686)
+
+<option value="Майма" >Майма&nbsp;&nbsp;(10)
+
+<option value="Майнц" >Майнц&nbsp;&nbsp;(5)
+
+<option value="Майский" >Майский&nbsp;&nbsp;(33)
+
+<option value="Макеевка" >Макеевка&nbsp;&nbsp;(456)
+
+<option value="Малаховка" >Малаховка&nbsp;&nbsp;(461)
+
+<option value="Малоярославец" >Малоярославец&nbsp;&nbsp;(6)
+
+<option value="Манчестер" >Манчестер&nbsp;&nbsp;(8)
+
+<option value="Мариинск" >Мариинск&nbsp;&nbsp;(4)
+
+<option value="Мариуполь" >Мариуполь&nbsp;&nbsp;(194)
+
+<option value="Махачкала" >Махачкала&nbsp;&nbsp;(6255)
+
+<option value="Мегион" >Мегион&nbsp;&nbsp;(17)
+
+<option value="Междуреченск" >Междуреченск&nbsp;&nbsp;(47)
+
+<option value="Мелеуз" >Мелеуз&nbsp;&nbsp;(66)
+
+<option value="Мелитополь" >Мелитополь&nbsp;&nbsp;(317)
+
+<option value="Мельбурн" >Мельбурн&nbsp;&nbsp;(7)
+
+<option value="Менделеево" >Менделеево&nbsp;&nbsp;(389)
+
+<option value="Менделеевск" >Менделеевск&nbsp;&nbsp;(5)
+
+<option value="Мехико" >Мехико&nbsp;&nbsp;(10)
+
+<option value="Миасс" >Миасс&nbsp;&nbsp;(428)
+
+<option value="Милан" >Милан&nbsp;&nbsp;(8)
+
+<option value="Миллерово" >Миллерово&nbsp;&nbsp;(4)
+
+<option value="Милуоки" >Милуоки&nbsp;&nbsp;(4)
+
+<option value="Минеральные Воды" >Минеральные Воды&nbsp;&nbsp;(118)
+
+<option value="Минск" >Минск&nbsp;&nbsp;(15935)
+
+<option value="Минусинск" >Минусинск&nbsp;&nbsp;(19)
+
+<option value="Мирный" >Мирный&nbsp;&nbsp;(242)
+
+<option value="Михайловка" >Михайловка&nbsp;&nbsp;(65)
+
+<option value="Михайловск" >Михайловск&nbsp;&nbsp;(376)
+
+<option value="Михайловское" >Михайловское&nbsp;&nbsp;(7)
+
+<option value="Мичуринск" >Мичуринск&nbsp;&nbsp;(819)
+
+<option value="Могилев" >Могилев&nbsp;&nbsp;(1171)
+
+<option value="Можайск" >Можайск&nbsp;&nbsp;(11)
+
+<option value="Можга" >Можга&nbsp;&nbsp;(11)
+
+<option value="Мозырь" >Мозырь&nbsp;&nbsp;(69)
+
+<option value="Молодежный" >Молодежный&nbsp;&nbsp;(579)
+
+<option value="Молодечно" >Молодечно&nbsp;&nbsp;(4)
+
+<option value="Молочное" >Молочное&nbsp;&nbsp;(4)
+
+<option value="Молочные Дворы" >Молочные Дворы&nbsp;&nbsp;(22)
+
+<option value="Молочный" >Молочный&nbsp;&nbsp;(7)
+
+<option value="Монино" >Монино&nbsp;&nbsp;(14)
+
+<option value="Монпелье" >Монпелье&nbsp;&nbsp;(5)
+
+<option value="Монреаль" >Монреаль&nbsp;&nbsp;(7)
+
+<option value="Мончегорск" >Мончегорск&nbsp;&nbsp;(9)
+
+<option value="Морозовка" >Морозовка&nbsp;&nbsp;(22)
+
+<option value="Московский" >Московский&nbsp;&nbsp;(70)
+
+<option value="Муравленко" >Муравленко&nbsp;&nbsp;(6)
+
+<option value="Мурино" >Мурино&nbsp;&nbsp;(37)
+
+<option value="Мурманск" >Мурманск&nbsp;&nbsp;(1569)
+
+<option value="Муром" >Муром&nbsp;&nbsp;(276)
+
+<option value="Мценск" >Мценск&nbsp;&nbsp;(10)
+
+<option value="Мыски" >Мыски&nbsp;&nbsp;(4)
+
+<option value="Мытищи" >Мытищи&nbsp;&nbsp;(3393)
+
+<option value="Мюнхен" >Мюнхен&nbsp;&nbsp;(20)
+
+<option value="Набережные Челны" >Набережные Челны&nbsp;&nbsp;(1251)
+
+<option value="Навои" >Навои&nbsp;&nbsp;(45)
+
+<option value="Надым" >Надым&nbsp;&nbsp;(65)
+
+<option value="Назрань" >Назрань&nbsp;&nbsp;(223)
+
+<option value="Нальчик" >Нальчик&nbsp;&nbsp;(3384)
+
+<option value="Наманган" >Наманган&nbsp;&nbsp;(129)
+
+<option value="Нанкин" >Нанкин&nbsp;&nbsp;(4)
+
+<option value="Нарва" >Нарва&nbsp;&nbsp;(8)
+
+<option value="Наро-Фоминск" >Наро-Фоминск&nbsp;&nbsp;(70)
+
+<option value="Нарткала" >Нарткала&nbsp;&nbsp;(4)
+
+<option value="Нарын" >Нарын&nbsp;&nbsp;(32)
+
+<option value="Нарьян-Мар" >Нарьян-Мар&nbsp;&nbsp;(44)
+
+<option value="Научный" >Научный&nbsp;&nbsp;(98)
+
+<option value="Нахабино" >Нахабино&nbsp;&nbsp;(46)
+
+<option value="Нахичевань" >Нахичевань&nbsp;&nbsp;(30)
+
+<option value="Находка" >Находка&nbsp;&nbsp;(34)
+
+<option value="Невинномысск" >Невинномысск&nbsp;&nbsp;(244)
+
+<option value="Нейтрино" >Нейтрино&nbsp;&nbsp;(43)
+
+<option value="Нелидово" >Нелидово&nbsp;&nbsp;(5)
+
+<option value="Немчиновка" >Немчиновка&nbsp;&nbsp;(86)
+
+<option value="Нерусса" >Нерусса&nbsp;&nbsp;(7)
+
+<option value="Нерюнгри" >Нерюнгри&nbsp;&nbsp;(124)
+
+<option value="Нефтекамск" >Нефтекамск&nbsp;&nbsp;(64)
+
+<option value="Нефтеюганск" >Нефтеюганск&nbsp;&nbsp;(55)
+
+<option value="Нижневартовск" >Нижневартовск&nbsp;&nbsp;(721)
+
+<option value="Нижнекамск" >Нижнекамск&nbsp;&nbsp;(226)
+
+<option value="Нижний Архыз" >Нижний Архыз&nbsp;&nbsp;(274)
+
+<option value="Нижний Новгород" >Нижний Новгород&nbsp;&nbsp;(17703)
+
+<option value="Нижний Тагил" >Нижний Тагил&nbsp;&nbsp;(402)
+
+<option value="Нижний Цасучей" >Нижний Цасучей&nbsp;&nbsp;(5)
+
+<option value="Николаев" >Николаев&nbsp;&nbsp;(119)
+
+<option value="Никольское" >Никольское&nbsp;&nbsp;(4)
+
+<option value="Никосия" >Никосия&nbsp;&nbsp;(4)
+
+<option value="Нитра" >Нитра&nbsp;&nbsp;(4)
+
+<option value="Нови-Сад" >Нови-Сад&nbsp;&nbsp;(7)
+
+<option value="Новоалтайск" >Новоалтайск&nbsp;&nbsp;(7)
+
+<option value="Нововоронеж" >Нововоронеж&nbsp;&nbsp;(23)
+
+<option value="Новогорск" >Новогорск&nbsp;&nbsp;(10)
+
+<option value="Новодвинск" >Новодвинск&nbsp;&nbsp;(9)
+
+<option value="Новозыбков" >Новозыбков&nbsp;&nbsp;(43)
+
+<option value="Новоивановское" >Новоивановское&nbsp;&nbsp;(8)
+
+<option value="Новокубанск" >Новокубанск&nbsp;&nbsp;(33)
+
+<option value="Новокузнецк" >Новокузнецк&nbsp;&nbsp;(2329)
+
+<option value="Новокуйбышевск" >Новокуйбышевск&nbsp;&nbsp;(42)
+
+<option value="Новомичуринск" >Новомичуринск&nbsp;&nbsp;(6)
+
+<option value="Новомосковск" >Новомосковск&nbsp;&nbsp;(192)
+
+<option value="Новополоцк" >Новополоцк&nbsp;&nbsp;(418)
+
+<option value="Новороссийск" >Новороссийск&nbsp;&nbsp;(909)
+
+<option value="Новосибирск" >Новосибирск&nbsp;&nbsp;(31941)
+
+<option value="Новотроицк" >Новотроицк&nbsp;&nbsp;(61)
+
+<option value="Новоуральск" >Новоуральск&nbsp;&nbsp;(103)
+
+<option value="Новочебоксарск" >Новочебоксарск&nbsp;&nbsp;(30)
+
+<option value="Новочеркасск" >Новочеркасск&nbsp;&nbsp;(2581)
+
+<option value="Новошахтинск" >Новошахтинск&nbsp;&nbsp;(16)
+
+<option value="Новый" >Новый&nbsp;&nbsp;(86)
+
+<option value="Новый Быт" >Новый Быт&nbsp;&nbsp;(5)
+
+<option value="Новый Уренгой" >Новый Уренгой&nbsp;&nbsp;(123)
+
+<option value="Ногинск" >Ногинск&nbsp;&nbsp;(121)
+
+<option value="Норильск" >Норильск&nbsp;&nbsp;(244)
+
+<option value="Ноябрьск" >Ноябрьск&nbsp;&nbsp;(52)
+
+<option value="Нукус" >Нукус&nbsp;&nbsp;(74)
+
+<option value="Нью-Йорк" >Нью-Йорк&nbsp;&nbsp;(37)
+
+<option value="Нью-Хейвен" >Нью-Хейвен&nbsp;&nbsp;(4)
+
+<option value="Нюрба" >Нюрба&nbsp;&nbsp;(7)
+
+<option value="Нягань" >Нягань&nbsp;&nbsp;(14)
+
+<option value="Обильное" >Обильное&nbsp;&nbsp;(9)
+
+<option value="Обнинск" >Обнинск&nbsp;&nbsp;(2971)
+
+<option value="Оболенск" >Оболенск&nbsp;&nbsp;(231)
+
+<option value="Обь" >Обь&nbsp;&nbsp;(12)
+
+<option value="Одесса" >Одесса&nbsp;&nbsp;(1231)
+
+<option value="Одинцово" >Одинцово&nbsp;&nbsp;(646)
+
+<option value="Озерск" >Озерск&nbsp;&nbsp;(229)
+
+<option value="Оклэнд" >Оклэнд&nbsp;&nbsp;(4)
+
+<option value="Оксфорд" >Оксфорд&nbsp;&nbsp;(11)
+
+<option value="Октябрьский" >Октябрьский&nbsp;&nbsp;(166)
+
+<option value="Олекминск" >Олекминск&nbsp;&nbsp;(4)
+
+<option value="Оленегорск" >Оленегорск&nbsp;&nbsp;(37)
+
+<option value="Ольштын" >Ольштын&nbsp;&nbsp;(7)
+
+<option value="Омск" >Омск&nbsp;&nbsp;(11478)
+
+<option value="Опорный" >Опорный&nbsp;&nbsp;(6)
+
+<option value="Орджоникидзе" >Орджоникидзе&nbsp;&nbsp;(14)
+
+<option value="Орджоникидзевская" >Орджоникидзевская&nbsp;&nbsp;(5)
+
+<option value="Орел" >Орел&nbsp;&nbsp;(4603)
+
+<option value="Оренбург" >Оренбург&nbsp;&nbsp;(6281)
+
+<option value="Орехово-Зуево" >Орехово-Зуево&nbsp;&nbsp;(415)
+
+<option value="Орск" >Орск&nbsp;&nbsp;(272)
+
+<option value="Орша" >Орша&nbsp;&nbsp;(6)
+
+<option value="Осинники" >Осинники&nbsp;&nbsp;(4)
+
+<option value="Осло" >Осло&nbsp;&nbsp;(7)
+
+<option value="Остин" >Остин&nbsp;&nbsp;(6)
+
+<option value="Острог" >Острог&nbsp;&nbsp;(6)
+
+<option value="Отрадное" >Отрадное&nbsp;&nbsp;(16)
+
+<option value="Оттава" >Оттава&nbsp;&nbsp;(5)
+
+<option value="Оха" >Оха&nbsp;&nbsp;(6)
+
+<option value="Ош" >Ош&nbsp;&nbsp;(1374)
+
+<option value="Павлово" >Павлово&nbsp;&nbsp;(13)
+
+<option value="Павловск" >Павловск&nbsp;&nbsp;(18)
+
+<option value="Павловский Посад" >Павловский Посад&nbsp;&nbsp;(44)
+
+<option value="Павлодар" >Павлодар&nbsp;&nbsp;(298)
+
+<option value="Паратунка" >Паратунка&nbsp;&nbsp;(79)
+
+<option value="Парголово" >Парголово&nbsp;&nbsp;(18)
+
+<option value="Париж" >Париж&nbsp;&nbsp;(35)
+
+<option value="Партизанск" >Партизанск&nbsp;&nbsp;(4)
+
+<option value="Певек" >Певек&nbsp;&nbsp;(4)
+
+<option value="Пекин" >Пекин&nbsp;&nbsp;(28)
+
+<option value="Пенза" >Пенза&nbsp;&nbsp;(5594)
+
+<option value="Первоуральск" >Первоуральск&nbsp;&nbsp;(42)
+
+<option value="Пересвет" >Пересвет&nbsp;&nbsp;(6)
+
+<option value="Переславль-Залесский" >Переславль-Залесский&nbsp;&nbsp;(237)
+
+<option value="Переяслав" >Переяслав&nbsp;&nbsp;(14)
+
+<option value="Переяслав-Хмельницкий" >Переяслав-Хмельницкий&nbsp;&nbsp;(17)
+
+<option value="Пермь" >Пермь&nbsp;&nbsp;(10794)
+
+<option value="Персиановский" >Персиановский&nbsp;&nbsp;(1333)
+
+<option value="Петергоф" >Петергоф&nbsp;&nbsp;(50)
+
+<option value="Петрово-Дальнее" >Петрово-Дальнее&nbsp;&nbsp;(35)
+
+<option value="Петрозаводск" >Петрозаводск&nbsp;&nbsp;(2674)
+
+<option value="Петропавловск" >Петропавловск&nbsp;&nbsp;(127)
+
+<option value="Петропавловск-Камчатский" >Петропавловск-Камчатский&nbsp;&nbsp;(1046)
+
+<option value="Печора" >Печора&nbsp;&nbsp;(6)
+
+<option value="Печоры" >Печоры&nbsp;&nbsp;(5)
+
+<option value="Пиза" >Пиза&nbsp;&nbsp;(4)
+
+<option value="Пинега" >Пинега&nbsp;&nbsp;(10)
+
+<option value="Пинск" >Пинск&nbsp;&nbsp;(172)
+
+<option value="Плевен" >Плевен&nbsp;&nbsp;(6)
+
+<option value="Пловдив" >Пловдив&nbsp;&nbsp;(60)
+
+<option value="Плосков" >Плосков&nbsp;&nbsp;(8)
+
+<option value="Подольск" >Подольск&nbsp;&nbsp;(1439)
+
+<option value="Познань" >Познань&nbsp;&nbsp;(9)
+
+<option value="Покров" >Покров&nbsp;&nbsp;(161)
+
+<option value="Покровск" >Покровск&nbsp;&nbsp;(5)
+
+<option value="Полевской" >Полевской&nbsp;&nbsp;(20)
+
+<option value="Полесск" >Полесск&nbsp;&nbsp;(8)
+
+<option value="Полоцк" >Полоцк&nbsp;&nbsp;(60)
+
+<option value="Полтава" >Полтава&nbsp;&nbsp;(178)
+
+<option value="Потсдам" >Потсдам&nbsp;&nbsp;(9)
+
+<option value="Правдинский" >Правдинский&nbsp;&nbsp;(156)
+
+<option value="Прага" >Прага&nbsp;&nbsp;(37)
+
+<option value="Пржевальское" >Пржевальское&nbsp;&nbsp;(4)
+
+<option value="Прилуки" >Прилуки&nbsp;&nbsp;(28)
+
+<option value="Приморско-Ахтарск" >Приморско-Ахтарск&nbsp;&nbsp;(4)
+
+<option value="Принстон" >Принстон&nbsp;&nbsp;(5)
+
+<option value="Прокопьевск" >Прокопьевск&nbsp;&nbsp;(100)
+
+<option value="Протвино" >Протвино&nbsp;&nbsp;(712)
+
+<option value="Псков" >Псков&nbsp;&nbsp;(961)
+
+<option value="Пушкин" >Пушкин&nbsp;&nbsp;(395)
+
+<option value="Пушкино" >Пушкино&nbsp;&nbsp;(463)
+
+<option value="Пущино" >Пущино&nbsp;&nbsp;(2864)
+
+<option value="Пыть-Ях" >Пыть-Ях&nbsp;&nbsp;(7)
+
+<option value="Пятигорск" >Пятигорск&nbsp;&nbsp;(2413)
+
+<option value="Радужный" >Радужный&nbsp;&nbsp;(19)
+
+<option value="Развилка" >Развилка&nbsp;&nbsp;(101)
+
+<option value="Раздорская" >Раздорская&nbsp;&nbsp;(4)
+
+<option value="Рамат-Ган" >Рамат-Ган&nbsp;&nbsp;(5)
+
+<option value="Раменское" >Раменское&nbsp;&nbsp;(315)
+
+<option value="Рамонь" >Рамонь&nbsp;&nbsp;(34)
+
+<option value="Рассвет" >Рассвет&nbsp;&nbsp;(48)
+
+<option value="Рассказово" >Рассказово&nbsp;&nbsp;(7)
+
+<option value="Рашт" >Рашт&nbsp;&nbsp;(13)
+
+<option value="Ревда" >Ревда&nbsp;&nbsp;(11)
+
+<option value="Реветь" >Реветь&nbsp;&nbsp;(9)
+
+<option value="Регенсбург" >Регенсбург&nbsp;&nbsp;(4)
+
+<option value="Реймс" >Реймс&nbsp;&nbsp;(4)
+
+<option value="Реутов" >Реутов&nbsp;&nbsp;(154)
+
+<option value="Реховот" >Реховот&nbsp;&nbsp;(4)
+
+<option value="Речица" >Речица&nbsp;&nbsp;(6)
+
+<option value="Ржавки" >Ржавки&nbsp;&nbsp;(31)
+
+<option value="Ржев" >Ржев&nbsp;&nbsp;(7)
+
+<option value="Рига" >Рига&nbsp;&nbsp;(310)
+
+<option value="Риддер" >Риддер&nbsp;&nbsp;(14)
+
+<option value="Рим" >Рим&nbsp;&nbsp;(10)
+
+<option value="Ровно" >Ровно&nbsp;&nbsp;(91)
+
+<option value="Родники" >Родники&nbsp;&nbsp;(99)
+
+<option value="Россошь" >Россошь&nbsp;&nbsp;(17)
+
+<option value="Ростов" >Ростов&nbsp;&nbsp;(37)
+
+<option value="Ростов-на-Дону" >Ростов-на-Дону&nbsp;&nbsp;(21941)
+
+<option value="Росток" >Росток&nbsp;&nbsp;(4)
+
+<option value="Рочестер" >Рочестер&nbsp;&nbsp;(6)
+
+<option value="Рубежное" >Рубежное&nbsp;&nbsp;(10)
+
+<option value="Рубцовск" >Рубцовск&nbsp;&nbsp;(130)
+
+<option value="Рудный" >Рудный&nbsp;&nbsp;(13)
+
+<option value="Руза" >Руза&nbsp;&nbsp;(116)
+
+<option value="Рузаевка" >Рузаевка&nbsp;&nbsp;(69)
+
+<option value="Русе" >Русе&nbsp;&nbsp;(18)
+
+<option value="Рыбачий" >Рыбачий&nbsp;&nbsp;(11)
+
+<option value="Рыбинск" >Рыбинск&nbsp;&nbsp;(367)
+
+<option value="Рыбница" >Рыбница&nbsp;&nbsp;(40)
+
+<option value="Рыбное" >Рыбное&nbsp;&nbsp;(112)
+
+<option value="Рязань" >Рязань&nbsp;&nbsp;(5750)
+
+<option value="Садовое" >Садовое&nbsp;&nbsp;(58)
+
+<option value="Садовый" >Садовый&nbsp;&nbsp;(5)
+
+<option value="Саки" >Саки&nbsp;&nbsp;(5)
+
+<option value="Салават" >Салават&nbsp;&nbsp;(113)
+
+<option value="Саласпилс" >Саласпилс&nbsp;&nbsp;(25)
+
+<option value="Салехард" >Салехард&nbsp;&nbsp;(106)
+
+<option value="Салоники" >Салоники&nbsp;&nbsp;(5)
+
+<option value="Сальск" >Сальск&nbsp;&nbsp;(7)
+
+<option value="Самара" >Самара&nbsp;&nbsp;(14453)
+
+<option value="Самарканд" >Самарканд&nbsp;&nbsp;(241)
+
+<option value="Самохваловичи" >Самохваловичи&nbsp;&nbsp;(35)
+
+<option value="Сан-Диего" >Сан-Диего&nbsp;&nbsp;(6)
+
+<option value="Санья" >Санья&nbsp;&nbsp;(4)
+
+<option value="Саранск" >Саранск&nbsp;&nbsp;(5361)
+
+<option value="Сарапул" >Сарапул&nbsp;&nbsp;(42)
+
+<option value="Саратов" >Саратов&nbsp;&nbsp;(15689)
+
+<option value="Саров" >Саров&nbsp;&nbsp;(900)
+
+<option value="Сатка" >Сатка&nbsp;&nbsp;(22)
+
+<option value="Саутгемптон" >Саутгемптон&nbsp;&nbsp;(4)
+
+<option value="Сафоново" >Сафоново&nbsp;&nbsp;(4)
+
+<option value="Саяногорск" >Саяногорск&nbsp;&nbsp;(64)
+
+<option value="Саянск" >Саянск&nbsp;&nbsp;(4)
+
+<option value="Свердлова" >Свердлова&nbsp;&nbsp;(8)
+
+<option value="Свердловск" >Свердловск&nbsp;&nbsp;(5)
+
+<option value="Светлогорск" >Светлогорск&nbsp;&nbsp;(8)
+
+<option value="Светлые горы" >Светлые горы&nbsp;&nbsp;(33)
+
+<option value="Светлый" >Светлый&nbsp;&nbsp;(7)
+
+<option value="Свиштов" >Свиштов&nbsp;&nbsp;(11)
+
+<option value="Свободный" >Свободный&nbsp;&nbsp;(12)
+
+<option value="Севастополь" >Севастополь&nbsp;&nbsp;(2642)
+
+<option value="Северный" >Северный&nbsp;&nbsp;(4)
+
+<option value="Северодвинск" >Северодвинск&nbsp;&nbsp;(324)
+
+<option value="Северодонецк" >Северодонецк&nbsp;&nbsp;(36)
+
+<option value="Североморск" >Североморск&nbsp;&nbsp;(23)
+
+<option value="Североуральск" >Североуральск&nbsp;&nbsp;(14)
+
+<option value="Северск" >Северск&nbsp;&nbsp;(292)
+
+<option value="Селятино" >Селятино&nbsp;&nbsp;(5)
+
+<option value="Семей" >Семей&nbsp;&nbsp;(237)
+
+<option value="Семенов" >Семенов&nbsp;&nbsp;(4)
+
+<option value="Семилуки" >Семилуки&nbsp;&nbsp;(6)
+
+<option value="Семипалатинск" >Семипалатинск&nbsp;&nbsp;(14)
+
+<option value="Сергач" >Сергач&nbsp;&nbsp;(4)
+
+<option value="Сергиев Посад" >Сергиев Посад&nbsp;&nbsp;(817)
+
+<option value="Серов" >Серов&nbsp;&nbsp;(5)
+
+<option value="Серпухов" >Серпухов&nbsp;&nbsp;(413)
+
+<option value="Сертолово" >Сертолово&nbsp;&nbsp;(25)
+
+<option value="Сестрорецк" >Сестрорецк&nbsp;&nbsp;(65)
+
+<option value="Сеул" >Сеул&nbsp;&nbsp;(13)
+
+<option value="Сиань" >Сиань&nbsp;&nbsp;(7)
+
+<option value="Сибай" >Сибай&nbsp;&nbsp;(122)
+
+<option value="Сидней" >Сидней&nbsp;&nbsp;(7)
+
+<option value="Симферополь" >Симферополь&nbsp;&nbsp;(5603)
+
+<option value="Сингапур" >Сингапур&nbsp;&nbsp;(5)
+
+<option value="Сириус" >Сириус&nbsp;&nbsp;(41)
+
+<option value="Сиэтл" >Сиэтл&nbsp;&nbsp;(5)
+
+<option value="Сколково" >Сколково&nbsp;&nbsp;(42)
+
+<option value="Скопье" >Скопье&nbsp;&nbsp;(4)
+
+<option value="Славгород" >Славгород&nbsp;&nbsp;(5)
+
+<option value="Славянск" >Славянск&nbsp;&nbsp;(87)
+
+<option value="Славянск-на-Кубани" >Славянск-на-Кубани&nbsp;&nbsp;(151)
+
+<option value="Сланцы" >Сланцы&nbsp;&nbsp;(5)
+
+<option value="Слупск" >Слупск&nbsp;&nbsp;(4)
+
+<option value="Смоленск" >Смоленск&nbsp;&nbsp;(2977)
+
+<option value="Снежинск" >Снежинск&nbsp;&nbsp;(393)
+
+<option value="Советский" >Советский&nbsp;&nbsp;(17)
+
+<option value="Соленое Займище" >Соленое Займище&nbsp;&nbsp;(152)
+
+<option value="Солигорск" >Солигорск&nbsp;&nbsp;(11)
+
+<option value="Соликамск" >Соликамск&nbsp;&nbsp;(72)
+
+<option value="Солнечногорск" >Солнечногорск&nbsp;&nbsp;(194)
+
+<option value="Сосновка" >Сосновка&nbsp;&nbsp;(4)
+
+<option value="Сосновоборск" >Сосновоборск&nbsp;&nbsp;(12)
+
+<option value="Сосновый Бор" >Сосновый Бор&nbsp;&nbsp;(143)
+
+<option value="Сосногорск" >Сосногорск&nbsp;&nbsp;(5)
+
+<option value="София" >София&nbsp;&nbsp;(418)
+
+<option value="Софрино" >Софрино&nbsp;&nbsp;(4)
+
+<option value="Сочи" >Сочи&nbsp;&nbsp;(1671)
+
+<option value="Спасск-Дальний" >Спасск-Дальний&nbsp;&nbsp;(8)
+
+<option value="Ставрополь" >Ставрополь&nbsp;&nbsp;(8105)
+
+<option value="Стамбул" >Стамбул&nbsp;&nbsp;(14)
+
+<option value="Стара Загора" >Стара Загора&nbsp;&nbsp;(13)
+
+<option value="Старая Купавна" >Старая Купавна&nbsp;&nbsp;(30)
+
+<option value="Старая Русса" >Старая Русса&nbsp;&nbsp;(10)
+
+<option value="Старобельск" >Старобельск&nbsp;&nbsp;(87)
+
+<option value="Старотеряево" >Старотеряево&nbsp;&nbsp;(7)
+
+<option value="Старый Оскол" >Старый Оскол&nbsp;&nbsp;(384)
+
+<option value="Стаханов" >Стаханов&nbsp;&nbsp;(17)
+
+<option value="Степанакерт" >Степанакерт&nbsp;&nbsp;(6)
+
+<option value="Степановское" >Степановское&nbsp;&nbsp;(27)
+
+<option value="Степногорск" >Степногорск&nbsp;&nbsp;(4)
+
+<option value="Стерлитамак" >Стерлитамак&nbsp;&nbsp;(628)
+
+<option value="Стодолище" >Стодолище&nbsp;&nbsp;(5)
+
+<option value="Стокгольм" >Стокгольм&nbsp;&nbsp;(13)
+
+<option value="Страсбург" >Страсбург&nbsp;&nbsp;(10)
+
+<option value="Стрежевой" >Стрежевой&nbsp;&nbsp;(6)
+
+<option value="Стрелецкий" >Стрелецкий&nbsp;&nbsp;(7)
+
+<option value="Стрельна" >Стрельна&nbsp;&nbsp;(9)
+
+<option value="Ступино" >Ступино&nbsp;&nbsp;(85)
+
+<option value="Стэнфорд" >Стэнфорд&nbsp;&nbsp;(12)
+
+<option value="Судак" >Судак&nbsp;&nbsp;(4)
+
+<option value="Суздаль" >Суздаль&nbsp;&nbsp;(19)
+
+<option value="Сулюкта" >Сулюкта&nbsp;&nbsp;(7)
+
+<option value="Сумгаит" >Сумгаит&nbsp;&nbsp;(295)
+
+<option value="Сумы" >Сумы&nbsp;&nbsp;(187)
+
+<option value="Сунжа" >Сунжа&nbsp;&nbsp;(17)
+
+<option value="Сургут" >Сургут&nbsp;&nbsp;(1710)
+
+<option value="Сухой Лог" >Сухой Лог&nbsp;&nbsp;(4)
+
+<option value="Сухум" >Сухум&nbsp;&nbsp;(76)
+
+<option value="Сухуми" >Сухуми&nbsp;&nbsp;(55)
+
+<option value="Сходня" >Сходня&nbsp;&nbsp;(42)
+
+<option value="Сызрань" >Сызрань&nbsp;&nbsp;(214)
+
+<option value="Сыктывкар" >Сыктывкар&nbsp;&nbsp;(2087)
+
+<option value="Сысерть" >Сысерть&nbsp;&nbsp;(7)
+
+<option value="Сюйчжоу" >Сюйчжоу&nbsp;&nbsp;(4)
+
+<option value="Таганрог" >Таганрог&nbsp;&nbsp;(2218)
+
+<option value="Тайбэй" >Тайбэй&nbsp;&nbsp;(4)
+
+<option value="Талас" >Талас&nbsp;&nbsp;(11)
+
+<option value="Талдом" >Талдом&nbsp;&nbsp;(9)
+
+<option value="Талдыкорган" >Талдыкорган&nbsp;&nbsp;(140)
+
+<option value="Таллин" >Таллин&nbsp;&nbsp;(90)
+
+<option value="Таловая" >Таловая&nbsp;&nbsp;(4)
+
+<option value="Тамбов" >Тамбов&nbsp;&nbsp;(4172)
+
+<option value="Тампере" >Тампере&nbsp;&nbsp;(11)
+
+<option value="Танхой" >Танхой&nbsp;&nbsp;(7)
+
+<option value="Тара" >Тара&nbsp;&nbsp;(84)
+
+<option value="Тараз" >Тараз&nbsp;&nbsp;(94)
+
+<option value="Тарко-Сале" >Тарко-Сале&nbsp;&nbsp;(4)
+
+<option value="Тарту" >Тарту&nbsp;&nbsp;(165)
+
+<option value="Таруса" >Таруса&nbsp;&nbsp;(11)
+
+<option value="Ташкент" >Ташкент&nbsp;&nbsp;(4053)
+
+<option value="Таш-Кумыр" >Таш-Кумыр&nbsp;&nbsp;(9)
+
+<option value="Таштагол" >Таштагол&nbsp;&nbsp;(12)
+
+<option value="Тбилиси" >Тбилиси&nbsp;&nbsp;(1806)
+
+<option value="Тверь" >Тверь&nbsp;&nbsp;(4863)
+
+<option value="Тегеран" >Тегеран&nbsp;&nbsp;(21)
+
+<option value="Тейково" >Тейково&nbsp;&nbsp;(5)
+
+<option value="Тель-Авив" >Тель-Авив&nbsp;&nbsp;(18)
+
+<option value="Темиртау" >Темиртау&nbsp;&nbsp;(23)
+
+<option value="Темрюк" >Темрюк&nbsp;&nbsp;(21)
+
+<option value="Термез" >Термез&nbsp;&nbsp;(27)
+
+<option value="Терней" >Терней&nbsp;&nbsp;(6)
+
+<option value="Тернополь" >Тернополь&nbsp;&nbsp;(74)
+
+<option value="Терскол" >Терскол&nbsp;&nbsp;(8)
+
+<option value="Тикси" >Тикси&nbsp;&nbsp;(6)
+
+<option value="Тимашевск" >Тимашевск&nbsp;&nbsp;(9)
+
+<option value="Тимирязевский" >Тимирязевский&nbsp;&nbsp;(190)
+
+<option value="Тирасполь" >Тирасполь&nbsp;&nbsp;(570)
+
+<option value="Тихвин" >Тихвин&nbsp;&nbsp;(11)
+
+<option value="Тихорецк" >Тихорецк&nbsp;&nbsp;(49)
+
+<option value="Тобольск" >Тобольск&nbsp;&nbsp;(295)
+
+<option value="Токио" >Токио&nbsp;&nbsp;(11)
+
+<option value="Токмак" >Токмак&nbsp;&nbsp;(8)
+
+<option value="Тольятти" >Тольятти&nbsp;&nbsp;(2086)
+
+<option value="Томилино" >Томилино&nbsp;&nbsp;(15)
+
+<option value="Томск" >Томск&nbsp;&nbsp;(17274)
+
+<option value="Торжок" >Торжок&nbsp;&nbsp;(40)
+
+<option value="Торонто" >Торонто&nbsp;&nbsp;(6)
+
+<option value="Тосно" >Тосно&nbsp;&nbsp;(16)
+
+<option value="Тренто" >Тренто&nbsp;&nbsp;(4)
+
+<option value="Трехгорный" >Трехгорный&nbsp;&nbsp;(14)
+
+<option value="Трнава" >Трнава&nbsp;&nbsp;(6)
+
+<option value="Троицк" >Троицк&nbsp;&nbsp;(3141)
+
+<option value="Туапсе" >Туапсе&nbsp;&nbsp;(43)
+
+<option value="Туймазы" >Туймазы&nbsp;&nbsp;(10)
+
+<option value="Тула" >Тула&nbsp;&nbsp;(3857)
+
+<option value="Тулуза" >Тулуза&nbsp;&nbsp;(4)
+
+<option value="Турин" >Турин&nbsp;&nbsp;(6)
+
+<option value="Туркестан" >Туркестан&nbsp;&nbsp;(74)
+
+<option value="Туркменабад" >Туркменабад&nbsp;&nbsp;(4)
+
+<option value="Турку" >Турку&nbsp;&nbsp;(8)
+
+<option value="Тутаев" >Тутаев&nbsp;&nbsp;(9)
+
+<option value="Тында" >Тында&nbsp;&nbsp;(7)
+
+<option value="Тюмень" >Тюмень&nbsp;&nbsp;(9695)
+
+<option value="Углич" >Углич&nbsp;&nbsp;(102)
+
+<option value="Удельная" >Удельная&nbsp;&nbsp;(9)
+
+<option value="Удомля" >Удомля&nbsp;&nbsp;(6)
+
+<option value="Ужгород" >Ужгород&nbsp;&nbsp;(86)
+
+<option value="Узловая" >Узловая&nbsp;&nbsp;(9)
+
+<option value="Улан-Батор" >Улан-Батор&nbsp;&nbsp;(46)
+
+<option value="Улан-Удэ" >Улан-Удэ&nbsp;&nbsp;(4321)
+
+<option value="Улу-Теляк" >Улу-Теляк&nbsp;&nbsp;(7)
+
+<option value="Ульяновск" >Ульяновск&nbsp;&nbsp;(4364)
+
+<option value="Умань" >Умань&nbsp;&nbsp;(185)
+
+<option value="Унеча" >Унеча&nbsp;&nbsp;(8)
+
+<option value="Уппсала" >Уппсала&nbsp;&nbsp;(6)
+
+<option value="Урай" >Урай&nbsp;&nbsp;(9)
+
+<option value="Уральск" >Уральск&nbsp;&nbsp;(203)
+
+<option value="Ургенч" >Ургенч&nbsp;&nbsp;(55)
+
+<option value="Урюпинск" >Урюпинск&nbsp;&nbsp;(16)
+
+<option value="Усинск" >Усинск&nbsp;&nbsp;(20)
+
+<option value="Усолье-Сибирское" >Усолье-Сибирское&nbsp;&nbsp;(12)
+
+<option value="Успенское" >Успенское&nbsp;&nbsp;(129)
+
+<option value="Уссурийск" >Уссурийск&nbsp;&nbsp;(666)
+
+<option value="Устье" >Устье&nbsp;&nbsp;(7)
+
+<option value="Усть-Илимск" >Усть-Илимск&nbsp;&nbsp;(20)
+
+<option value="Усть-Каменогорск" >Усть-Каменогорск&nbsp;&nbsp;(227)
+
+<option value="Усть-Катав" >Усть-Катав&nbsp;&nbsp;(13)
+
+<option value="Усть-Кинельский" >Усть-Кинельский&nbsp;&nbsp;(28)
+
+<option value="Усть-Кокса" >Усть-Кокса&nbsp;&nbsp;(5)
+
+<option value="Усть-Лабинск" >Усть-Лабинск&nbsp;&nbsp;(6)
+
+<option value="Уфа" >Уфа&nbsp;&nbsp;(18474)
+
+<option value="Ухань" >Ухань&nbsp;&nbsp;(4)
+
+<option value="Ухта" >Ухта&nbsp;&nbsp;(433)
+
+<option value="Учкекен" >Учкекен&nbsp;&nbsp;(4)
+
+<option value="Феодосия" >Феодосия&nbsp;&nbsp;(77)
+
+<option value="Ферапонтово" >Ферапонтово&nbsp;&nbsp;(5)
+
+<option value="Фергана" >Фергана&nbsp;&nbsp;(264)
+
+<option value="Филадельфия" >Филадельфия&nbsp;&nbsp;(11)
+
+<option value="Франкфурт-на-Майне" >Франкфурт-на-Майне&nbsp;&nbsp;(6)
+
+<option value="Фрунзе" >Фрунзе&nbsp;&nbsp;(133)
+
+<option value="Фрязино" >Фрязино&nbsp;&nbsp;(587)
+
+<option value="Фряново" >Фряново&nbsp;&nbsp;(5)
+
+<option value="Фурманов" >Фурманов&nbsp;&nbsp;(4)
+
+<option value="Хабаровск" >Хабаровск&nbsp;&nbsp;(5928)
+
+<option value="Хайфа" >Хайфа&nbsp;&nbsp;(24)
+
+<option value="Ханой" >Ханой&nbsp;&nbsp;(31)
+
+<option value="Ханты-Мансийск" >Ханты-Мансийск&nbsp;&nbsp;(1031)
+
+<option value="Ханчжоу" >Ханчжоу&nbsp;&nbsp;(9)
+
+<option value="Харбин" >Харбин&nbsp;&nbsp;(15)
+
+<option value="Харцызск" >Харцызск&nbsp;&nbsp;(12)
+
+<option value="Харьков" >Харьков&nbsp;&nbsp;(3406)
+
+<option value="Хасавюрт" >Хасавюрт&nbsp;&nbsp;(7)
+
+<option value="Хельсинки" >Хельсинки&nbsp;&nbsp;(27)
+
+<option value="Херсон" >Херсон&nbsp;&nbsp;(288)
+
+<option value="Химки" >Химки&nbsp;&nbsp;(2371)
+
+<option value="Хмельницкий" >Хмельницкий&nbsp;&nbsp;(54)
+
+<option value="Хойники" >Хойники&nbsp;&nbsp;(7)
+
+<option value="Холмск" >Холмск&nbsp;&nbsp;(6)
+
+<option value="Холмская" >Холмская&nbsp;&nbsp;(6)
+
+<option value="Холон" >Холон&nbsp;&nbsp;(4)
+
+<option value="Хорог" >Хорог&nbsp;&nbsp;(52)
+
+<option value="Хотьково" >Хотьково&nbsp;&nbsp;(40)
+
+<option value="Хошимин" >Хошимин&nbsp;&nbsp;(9)
+
+<option value="Худжанд" >Худжанд&nbsp;&nbsp;(674)
+
+<option value="Хырдалан" >Хырдалан&nbsp;&nbsp;(4)
+
+<option value="Хьюстон" >Хьюстон&nbsp;&nbsp;(8)
+
+<option value="Хэйхэ" >Хэйхэ&nbsp;&nbsp;(6)
+
+<option value="Цзинань" >Цзинань&nbsp;&nbsp;(5)
+
+<option value="Цивильск" >Цивильск&nbsp;&nbsp;(5)
+
+<option value="Цхинвал" >Цхинвал&nbsp;&nbsp;(29)
+
+<option value="Чайковский" >Чайковский&nbsp;&nbsp;(167)
+
+<option value="Чанчунь" >Чанчунь&nbsp;&nbsp;(11)
+
+<option value="Чапаевск" >Чапаевск&nbsp;&nbsp;(5)
+
+<option value="Чебаркуль" >Чебаркуль&nbsp;&nbsp;(6)
+
+<option value="Чебоксары" >Чебоксары&nbsp;&nbsp;(4382)
+
+<option value="Челюскинский" >Челюскинский&nbsp;&nbsp;(4)
+
+<option value="Челябинск" >Челябинск&nbsp;&nbsp;(11815)
+
+<option value="Черемушки" >Черемушки&nbsp;&nbsp;(19)
+
+<option value="Череповец" >Череповец&nbsp;&nbsp;(849)
+
+<option value="Черкассы" >Черкассы&nbsp;&nbsp;(75)
+
+<option value="Черкесск" >Черкесск&nbsp;&nbsp;(477)
+
+<option value="Черкизово" >Черкизово&nbsp;&nbsp;(21)
+
+<option value="Черневцы" >Черневцы&nbsp;&nbsp;(4)
+
+<option value="Чернигов" >Чернигов&nbsp;&nbsp;(230)
+
+<option value="Черновцы" >Черновцы&nbsp;&nbsp;(133)
+
+<option value="Черноголовка" >Черноголовка&nbsp;&nbsp;(3104)
+
+<option value="Черногорск" >Черногорск&nbsp;&nbsp;(8)
+
+<option value="Чернышевский" >Чернышевский&nbsp;&nbsp;(4)
+
+<option value="Черняховск" >Черняховск&nbsp;&nbsp;(22)
+
+<option value="Чехов" >Чехов&nbsp;&nbsp;(37)
+
+<option value="Чжэнчжоу" >Чжэнчжоу&nbsp;&nbsp;(7)
+
+<option value="Чикаго" >Чикаго&nbsp;&nbsp;(6)
+
+<option value="Чирчик" >Чирчик&nbsp;&nbsp;(28)
+
+<option value="Чистополь" >Чистополь&nbsp;&nbsp;(53)
+
+<option value="Чита" >Чита&nbsp;&nbsp;(2586)
+
+<option value="Чкалов" >Чкалов&nbsp;&nbsp;(31)
+
+<option value="Чкаловск" >Чкаловск&nbsp;&nbsp;(13)
+
+<option value="Чурапча" >Чурапча&nbsp;&nbsp;(39)
+
+<option value="Чусовой" >Чусовой&nbsp;&nbsp;(7)
+
+<option value="Шадринск" >Шадринск&nbsp;&nbsp;(268)
+
+<option value="Шанхай" >Шанхай&nbsp;&nbsp;(13)
+
+<option value="Шатура" >Шатура&nbsp;&nbsp;(102)
+
+<option value="Шахты" >Шахты&nbsp;&nbsp;(661)
+
+<option value="Шебекино" >Шебекино&nbsp;&nbsp;(37)
+
+<option value="Шеки" >Шеки&nbsp;&nbsp;(5)
+
+<option value="Шелехов" >Шелехов&nbsp;&nbsp;(10)
+
+<option value="Шерегеш" >Шерегеш&nbsp;&nbsp;(4)
+
+<option value="Шереметьево" >Шереметьево&nbsp;&nbsp;(19)
+
+<option value="Шортанды" >Шортанды&nbsp;&nbsp;(19)
+
+<option value="Шумен" >Шумен&nbsp;&nbsp;(89)
+
+<option value="Шумерля" >Шумерля&nbsp;&nbsp;(5)
+
+<option value="Шушенское" >Шушенское&nbsp;&nbsp;(7)
+
+<option value="Шуя" >Шуя&nbsp;&nbsp;(265)
+
+<option value="Шымкент" >Шымкент&nbsp;&nbsp;(176)
+
+<option value="Шэньчжэнь" >Шэньчжэнь&nbsp;&nbsp;(13)
+
+<option value="Щекино" >Щекино&nbsp;&nbsp;(8)
+
+<option value="Щелково" >Щелково&nbsp;&nbsp;(237)
+
+<option value="Щербинка" >Щербинка&nbsp;&nbsp;(35)
+
+<option value="Щучинск" >Щучинск&nbsp;&nbsp;(22)
+
+<option value="Экибастуз" >Экибастуз&nbsp;&nbsp;(19)
+
+<option value="Электрогорск" >Электрогорск&nbsp;&nbsp;(56)
+
+<option value="Электроизолятор" >Электроизолятор&nbsp;&nbsp;(139)
+
+<option value="Электросталь" >Электросталь&nbsp;&nbsp;(140)
+
+<option value="Электроугли" >Электроугли&nbsp;&nbsp;(11)
+
+<option value="Элиста" >Элиста&nbsp;&nbsp;(1028)
+
+<option value="Эммаусс" >Эммаусс&nbsp;&nbsp;(32)
+
+<option value="Энгельс" >Энгельс&nbsp;&nbsp;(300)
+
+<option value="Эрбана" >Эрбана&nbsp;&nbsp;(5)
+
+<option value="Юбилейный" >Юбилейный&nbsp;&nbsp;(190)
+
+<option value="Югорск" >Югорск&nbsp;&nbsp;(12)
+
+<option value="Юджин" >Юджин&nbsp;&nbsp;(4)
+
+<option value="Южно-Сахалинск" >Южно-Сахалинск&nbsp;&nbsp;(783)
+
+<option value="Южноуральск" >Южноуральск&nbsp;&nbsp;(10)
+
+<option value="Юматово" >Юматово&nbsp;&nbsp;(4)
+
+<option value="Юниверсити-Парк" >Юниверсити-Парк&nbsp;&nbsp;(4)
+
+<option value="Юрга" >Юрга&nbsp;&nbsp;(149)
+
+<option value="Юхновка" >Юхновка&nbsp;&nbsp;(19)
+
+<option value="Яблоновский" >Яблоновский&nbsp;&nbsp;(9)
+
+<option value="Якутск" >Якутск&nbsp;&nbsp;(5515)
+
+<option value="Якша" >Якша&nbsp;&nbsp;(8)
+
+<option value="Ялта" >Ялта&nbsp;&nbsp;(775)
+
+<option value="Янгиюль" >Янгиюль&nbsp;&nbsp;(31)
+
+<option value="Яраг-Казмаляр" >Яраг-Казмаляр&nbsp;&nbsp;(15)
+
+<option value="Ярославль" >Ярославль&nbsp;&nbsp;(4851)
+
+<option value="Ясиноватая" >Ясиноватая&nbsp;&nbsp;(6)
+
+</select></div></td>
+<td></td>
+<td><div class="formfr"><select name="countryid" style="width:279px" class="input" onKeyPress="submit_enter(event)">
+<option value="" selected>
+
+<option value="RUS" >Россия&nbsp;&nbsp;(1010122)
+
+<option value="nRUS" >зарубежные страны&nbsp;&nbsp;(83756)
+
+<option value="BLR" >Беларусь&nbsp;&nbsp;(24842)
+
+<option value="UKR" >Украина&nbsp;&nbsp;(18627)
+
+<option value="KAZ" >Казахстан&nbsp;&nbsp;(10184)
+
+<option value="KGZ" >Киргизия&nbsp;&nbsp;(6710)
+
+<option value="TJK" >Таджикистан&nbsp;&nbsp;(6441)
+
+<option value="UZB" >Узбекистан&nbsp;&nbsp;(5202)
+
+<option value="AZE" >Азербайджан&nbsp;&nbsp;(2371)
+
+<option value="GEO" >Грузия&nbsp;&nbsp;(1905)
+
+<option value="ARM" >Армения&nbsp;&nbsp;(1394)
+
+<option value="MDA" >Молдова&nbsp;&nbsp;(1057)
+
+<option value="BGR" >Болгария&nbsp;&nbsp;(1018)
+
+<option value="USA" >США&nbsp;&nbsp;(424)
+
+<option value="LTU" >Литва&nbsp;&nbsp;(386)
+
+<option value="CHN" >Китай&nbsp;&nbsp;(368)
+
+<option value="ABH" >Абхазия&nbsp;&nbsp;(72)
+
+<option value="AUS" >Австралия&nbsp;&nbsp;(29)
+
+<option value="AUT" >Австрия&nbsp;&nbsp;(39)
+
+<option value="ALB" >Албания&nbsp;&nbsp;(4)
+
+<option value="DZA" >Алжир&nbsp;&nbsp;(6)
+
+<option value="AFG" >Афганистан&nbsp;&nbsp;(6)
+
+<option value="BEL" >Бельгия&nbsp;&nbsp;(22)
+
+<option value="BIH" >Босния и Герцеговина&nbsp;&nbsp;(10)
+
+<option value="BRA" >Бразилия&nbsp;&nbsp;(10)
+
+<option value="GBR" >Великобритания&nbsp;&nbsp;(120)
+
+<option value="HUN" >Венгрия&nbsp;&nbsp;(32)
+
+<option value="VNM" >Вьетнам&nbsp;&nbsp;(76)
+
+<option value="DEU" >Германия&nbsp;&nbsp;(266)
+
+<option value="HKG" >Гонконг&nbsp;&nbsp;(4)
+
+<option value="GRC" >Греция&nbsp;&nbsp;(18)
+
+<option value="DNK" >Дания&nbsp;&nbsp;(9)
+
+<option value="DNR" >Донецкая Народная Республика&nbsp;&nbsp;(152)
+
+<option value="EGY" >Египет&nbsp;&nbsp;(14)
+
+<option value="ISR" >Израиль&nbsp;&nbsp;(120)
+
+<option value="IND" >Индия&nbsp;&nbsp;(9)
+
+<option value="JOR" >Иордания&nbsp;&nbsp;(4)
+
+<option value="IRQ" >Ирак&nbsp;&nbsp;(24)
+
+<option value="IRN" >Иран&nbsp;&nbsp;(40)
+
+<option value="IRL" >Ирландия&nbsp;&nbsp;(4)
+
+<option value="ESP" >Испания&nbsp;&nbsp;(33)
+
+<option value="ITA" >Италия&nbsp;&nbsp;(70)
+
+<option value="YEM" >Йемен&nbsp;&nbsp;(5)
+
+<option value="CAN" >Канада&nbsp;&nbsp;(49)
+
+<option value="CYP" >Кипр&nbsp;&nbsp;(9)
+
+<option value="LVA" >Латвия&nbsp;&nbsp;(363)
+
+<option value="LBN" >Ливан&nbsp;&nbsp;(7)
+
+<option value="LNR" >Луганская Народная Республика&nbsp;&nbsp;(140)
+
+<option value="MYS" >Малайзия&nbsp;&nbsp;(4)
+
+<option value="MEX" >Мексика&nbsp;&nbsp;(17)
+
+<option value="MNG" >Монголия&nbsp;&nbsp;(51)
+
+<option value="NLD" >Нидерланды&nbsp;&nbsp;(30)
+
+<option value="NOR" >Норвегия&nbsp;&nbsp;(21)
+
+<option value="ARE" >Объединенные Арабские Эмираты&nbsp;&nbsp;(8)
+
+<option value="PER" >Перу&nbsp;&nbsp;(6)
+
+<option value="POL" >Польша&nbsp;&nbsp;(114)
+
+<option value="PRT" >Португалия&nbsp;&nbsp;(11)
+
+<option value="KOR" >Республика Корея&nbsp;&nbsp;(29)
+
+<option value="ROU" >Румыния&nbsp;&nbsp;(17)
+
+<option value="MKD" >Северная Македония&nbsp;&nbsp;(4)
+
+<option value="SRB" >Сербия&nbsp;&nbsp;(61)
+
+<option value="SGP" >Сингапур&nbsp;&nbsp;(5)
+
+<option value="SYR" >Сирия&nbsp;&nbsp;(21)
+
+<option value="SVK" >Словакия&nbsp;&nbsp;(34)
+
+<option value="THA" >Таиланд&nbsp;&nbsp;(8)
+
+<option value="TWN" >Тайвань&nbsp;&nbsp;(7)
+
+<option value="TUN" >Тунис&nbsp;&nbsp;(5)
+
+<option value="TKM" >Туркмения&nbsp;&nbsp;(89)
+
+<option value="TUR" >Турция&nbsp;&nbsp;(69)
+
+<option value="FIN" >Финляндия&nbsp;&nbsp;(70)
+
+<option value="FRA" >Франция&nbsp;&nbsp;(97)
+
+<option value="HRV" >Хорватия&nbsp;&nbsp;(8)
+
+<option value="MNE" >Черногория&nbsp;&nbsp;(6)
+
+<option value="CZE" >Чехия&nbsp;&nbsp;(58)
+
+<option value="CHE" >Швейцария&nbsp;&nbsp;(45)
+
+<option value="SWE" >Швеция&nbsp;&nbsp;(41)
+
+<option value="ECU" >Эквадор&nbsp;&nbsp;(7)
+
+<option value="EST" >Эстония&nbsp;&nbsp;(263)
+
+<option value="OST" >Южная Осетия&nbsp;&nbsp;(27)
+
+<option value="ZAF" >Южно-Африканская Республика&nbsp;&nbsp;(5)
+
+<option value="JPN" >Япония&nbsp;&nbsp;(33)
+
+<option value="UNK" >не указана&nbsp;&nbsp;(5474)
+
+</select></div></td></tr>
+</table>
+
+<table width=520 cellspacing=3 cellpadding=0 border=0>
+<tr valign=top class="menus"><td colspan=2 align=left valign=top>
+<table width=514 cellspacing=0 cellpadding=0 border=0>
+<tr valign=middle class="menus">
+<td width=114 align=left>
+<font color=#00008f>&nbsp;&nbsp;Организация:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>Нажмите на кнопку "Выбрать" справа и найдите нужную организацию в нормативном списке организаций РИНЦ. В результатах поиска будут отобраны авторы, у которых эта организация указана в качестве основного места работы. Если установить опцию "Искать в аффилиациях авторов в публикациях", будут отобраны также авторы, имеющие хотя бы одну публикацию с указанием данной организации в качестве места работы автора</p>'>
+</td>
+<td align=center width=15><input type=checkbox name="inaffil" id="inaffil" ></td><td align=left width=305>- Искать в аффилиациях авторов в публикациях</td>
+<td width=80></td>
+</tr></table>
+</tr>
+<tr align=left valign=top>
+<td width=428><div class="formfr"><textarea id="orgname" name="orgname" READONLY rows=2  wrap=virtual style="width:419px;  height:28px; " class="inputt"></textarea></div></td>
+<td width=80 align=right valign=top>
+<div class="butblue" style="width: 67px;" onClick="organizat_add()">Выбрать</div>
+</td>
+</tr></table>
+
+<div style="height:5px;"></div>
+<table width=520 cellspacing=3 cellpadding=0 border=0>
+<tr valign=top class="menus"><td width=514 align=left valign=top><font color=#00008f>&nbsp;&nbsp;Референтная группа или персональная группа авторов:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>Можно выбрать авторов из референтной группы. Можно также создать одну или несколько персональных групп авторов, которые использовать в качестве референтных групп.</p>'></td></tr>
+<tr><td align=left valign=top>
+<div class="formfr"><select id="authorboxid" name="authorboxid" style="width:510px" class="input">
+<option value="" selected>
+
+<option value="r2" >Выдающиеся профессора МГУ (2052)
+
+<option value="r1" >Профессора МГУ (4393)
+
+<option value="r3" >Заслуженные профессора МГУ (1034)
+
+</select></div></td></tr>
+</table>
+
+<div style="height:5px;"></div>
+<table width=520 cellspacing=3 cellpadding=0 border=0>
+<tr valign=top class="menus"><td align=left valign=top>
+<table width=373 cellspacing=0 cellpadding=0 border=0>
+<tr valign=middle class="menus">
+<td width=114 align=left>
+<font color=#00008f>&nbsp;&nbsp;Тематика:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>Поиск авторов, у которых основная рубрика публикаций соответствует выбранному тематическому направлению. Основная рубрика автора определяется по рубрикам публикаций из списка работ автора. При установке опции "Учитывать рубрики из анкеты автора" добавляются также тематические направления, указанные автором в регистрационной анкете (не более трех направлений). В этом случае автор может оказаться в списках сразу по нескольким направлениям</p>'>
+</td>
+<td align=center width=15><input type=checkbox name="rubricinreg" id="rubricinreg" ></td><td align=left width=244>- Учитывать рубрики из анкеты автора</td>
+</tr></table>
+</td>
+<td width=15></td>
+<td width=120 align=left valign=middle><font color=#00008f>&nbsp;&nbsp;Показатели:</font>&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>По какой базе данных рассчитываются показатели (число публикаций, число цитирований и индекс Хирша), которые показываются в списке авторов, и по которым проводится сортировка</p>'></td>
+</tr>
+
+<tr><td align=left valign=top><div class="formfr"><select id="rubriccode" name="rubriccode" style="width:369px" class="input">
+<option value="" selected>
+
+<option value="500000" >Автоматика. Вычислительная техника&nbsp;&nbsp;(15008)
+
+<option value="410000" >Астрономия&nbsp;&nbsp;(2848)
+
+<option value="340000" >Биология&nbsp;&nbsp;(54336)
+
+<option value="620000" >Биотехнология&nbsp;&nbsp;(742)
+
+<option value="720000" >Внешняя торговля&nbsp;&nbsp;(473)
+
+<option value="710000" >Внутренняя торговля. Туристско-экскурсионное обслуживание&nbsp;&nbsp;(635)
+
+<option value="700000" >Водное хозяйство&nbsp;&nbsp;(1577)
+
+<option value="780000" >Военное дело&nbsp;&nbsp;(3158)
+
+<option value="390000" >География&nbsp;&nbsp;(3198)
+
+<option value="360000" >Геодезия. Картография&nbsp;&nbsp;(1476)
+
+<option value="380000" >Геология&nbsp;&nbsp;(16089)
+
+<option value="370000" >Геофизика&nbsp;&nbsp;(10991)
+
+<option value="520000" >Горное дело&nbsp;&nbsp;(10644)
+
+<option value="100000" >Государство и право. Юридические науки&nbsp;&nbsp;(43180)
+
+<option value="050000" >Демография&nbsp;&nbsp;(390)
+
+<option value="750000" >Жилищно-коммунальное хозяйство. Домоводство. Бытовое...&nbsp;&nbsp;(188)
+
+<option value="200000" >Информатика&nbsp;&nbsp;(5489)
+
+<option value="180000" >Искусство. Искусствоведение&nbsp;&nbsp;(6676)
+
+<option value="030000" >История. Исторические науки&nbsp;&nbsp;(25086)
+
+<option value="280000" >Кибернетика&nbsp;&nbsp;(6970)
+
+<option value="230000" >Комплексное изучение отдельных стран и регионов&nbsp;&nbsp;(437)
+
+<option value="260000" >Комплексные проблемы общественных наук&nbsp;&nbsp;(40)
+
+<option value="890000" >Космические исследования&nbsp;&nbsp;(1292)
+
+<option value="130000" >Культура. Культурология&nbsp;&nbsp;(4678)
+
+<option value="640000" >Легкая промышленность&nbsp;&nbsp;(1863)
+
+<option value="660000" >Лесная и деревообрабатывающая промышленность&nbsp;&nbsp;(1264)
+
+<option value="170000" >Литература. Литературоведение. Устное народное творчество&nbsp;&nbsp;(8399)
+
+<option value="190000" >Массовая коммуникация. Журналистика. Средства массовой...&nbsp;&nbsp;(2416)
+
+<option value="270000" >Математика&nbsp;&nbsp;(18726)
+
+<option value="550000" >Машиностроение&nbsp;&nbsp;(29102)
+
+<option value="760000" >Медицина и здравоохранение&nbsp;&nbsp;(128513)
+
+<option value="530000" >Металлургия&nbsp;&nbsp;(7971)
+
+<option value="900000" >Метрология&nbsp;&nbsp;(886)
+
+<option value="300000" >Механика&nbsp;&nbsp;(9407)
+
+<option value="140000" >Народное образование. Педагогика&nbsp;&nbsp;(71222)
+
+<option value="120000" >Науковедение&nbsp;&nbsp;(723)
+
+<option value="000000" >Общественные науки в целом&nbsp;&nbsp;(520)
+
+<option value="430000" >Общие и комплексные проблемы естественных и точных наук&nbsp;&nbsp;(72)
+
+<option value="810000" >Общие и комплексные проблемы технических и прикладных наук...&nbsp;&nbsp;(6412)
+
+<option value="820000" >Организация и управление&nbsp;&nbsp;(577)
+
+<option value="870000" >Охрана окружающей среды. Экология человека&nbsp;&nbsp;(6009)
+
+<option value="860000" >Охрана труда&nbsp;&nbsp;(702)
+
+<option value="850000" >Патентное дело. Изобретательство. Рационализаторство&nbsp;&nbsp;(86)
+
+<option value="650000" >Пищевая промышленность&nbsp;&nbsp;(7986)
+
+<option value="600000" >Полиграфия. Репрография. Фотокинотехника&nbsp;&nbsp;(156)
+
+<option value="110000" >Политика. Политические науки&nbsp;&nbsp;(7219)
+
+<option value="590000" >Приборостроение&nbsp;&nbsp;(1413)
+
+<option value="800000" >Прочие отрасли экономики&nbsp;&nbsp;(41)
+
+<option value="150000" >Психология&nbsp;&nbsp;(15019)
+
+<option value="210000" >Религия. Атеизм&nbsp;&nbsp;(1207)
+
+<option value="690000" >Рыбное хозяйство. Аквакультура&nbsp;&nbsp;(1624)
+
+<option value="490000" >Связь&nbsp;&nbsp;(2741)
+
+<option value="680000" >Сельское и лесное хозяйство&nbsp;&nbsp;(49362)
+
+<option value="040000" >Социология&nbsp;&nbsp;(8639)
+
+<option value="840000" >Стандартизация&nbsp;&nbsp;(116)
+
+<option value="830000" >Статистика&nbsp;&nbsp;(146)
+
+<option value="670000" >Строительство. Архитектура&nbsp;&nbsp;(17051)
+
+<option value="730000" >Транспорт&nbsp;&nbsp;(10067)
+
+<option value="290000" >Физика&nbsp;&nbsp;(62786)
+
+<option value="770000" >Физическая культура и спорт&nbsp;&nbsp;(15694)
+
+<option value="020000" >Философия&nbsp;&nbsp;(9633)
+
+<option value="610000" >Химическая технология. Химическая промышленность&nbsp;&nbsp;(8076)
+
+<option value="310000" >Химия&nbsp;&nbsp;(50200)
+
+<option value="060000" >Экономика. Экономические науки&nbsp;&nbsp;(98120)
+
+<option value="470000" >Электроника. Радиотехника&nbsp;&nbsp;(10997)
+
+<option value="450000" >Электротехника&nbsp;&nbsp;(4997)
+
+<option value="440000" >Энергетика&nbsp;&nbsp;(13243)
+
+<option value="580000" >Ядерная техника&nbsp;&nbsp;(990)
+
+<option value="160000" >Языкознание&nbsp;&nbsp;(31432)
+
+</select></div></td>
+<td></td>
+<td><div class="formfr"><select name="metrics" style="width:116px" class="input" onKeyPress="submit_enter(event)">
+<option value="0" >по ядру РИНЦ
+<option value="1" selected>по РИНЦ
+<option value="2" >по elibrary.ru
+</select></div></td>
+</tr>
+</table>
+
+<table width=520 cellspacing=3 cellpadding=0 border=0>
+<tr><td align=right width=24><input type=checkbox name="show_nopubl" id="show_nopubl" ></td><td align=left width=484>- показывать только авторов, имеющих публикации&nbsp;<img src="/images/but_orange_question.gif" class="imghelp help" title='<p>Если Вы хотите выводить в результатах поиска только авторов, имеющих хотя бы одну публикацию (в ядре РИНЦ, в РИНЦ или на elibrary.ru), установите эту опцию</p>'></td></tr>
+</table>
+
+<table width=520 cellspacing=3 cellpadding=0 border=0>
+<tr valign=top class="menus"><td width=170 align=left valign=top><font color=#00008f>&nbsp;&nbsp;Сортировка:</font></td><td width=15></td><td width=139 align=left valign=top><font color=#00008f>&nbsp;&nbsp;Порядок:</font></td><td width=15></td><td width=80></td><td width=80></td></tr>
+<tr align=left valign=top>
+<td><div class="formfr"><select id="sortorder" name="sortorder" style="width:166px" class="input" onChange='var ord = document.forms["results"].order; switch(this.value) {case "0" : ord.value="0"; break; case "1" : ord.value="1"; break; case "2" : ord.value="1"; break; case "3" : ord.value="1"; break; }' onKeyPress="submit_enter(event)">
+<option value="0" >по фамилии
+<option value="1" >по числу публикаций
+<option value="2" selected>по числу цитирований
+<option value="3" >по индексу Хирша
+</select></div></td>
+<td></td>
+<td><div class="formfr"><select id="order" name="order" style="width:135px" class="input" onKeyPress="submit_enter(event)">
+<option value="0" selected>по возрастанию
+<option value="1" >по убыванию
+</select></div></td>
+<td></td>
+<td align=left valign=middle>
+<div class="butblue" style="width: 67px;" onClick="reset_form()">Очистить</div>
+</td>
+<td align=right valign=middle>
+<div class="butred" style="width: 67px;" onClick="author_search()">Поиск</div>
+</td>
+</tr>
+</table>
+<div style="height:4px;"></div>
+
+</div>
+</div>
+<div style="height:12px;"></div>
+
+<div style="width: 480px; margin: 30px 0 10px 30px; border: 0; padding: 10px 20px 7px 20px; text-align: center;">
+<table width=480 cellspacing=3 cellpadding=0 border=0>
+<tr><td width=80 align=right valign=top><img src="images/but_orange_!.gif" width=15 height=15 hspace=3 border=0></td><td width=391 align=left valign=top class="redref"><font color=#00008f>Не найдено авторов, удовлетворяющих условиям поиска</td></tr></table>
+</div>
+
+<br>
+</td></tr>
+</table>
+
+<SCRIPT LANGUAGE="JavaScript">
+$(function() {
+$(".help").tooltip({
+	position: "top right",
+	offset: [-15, -100],
+	effect: "fade", 
+	fadeInSpeed: 800, 
+	fadeOutSpeed: 400, 
+	delay: 400,  
+	predelay: 400,
+	opacity: 1.0
+});
+});
+</script>
+<div id="wiki_tooltip"></div>
+
+</td>
+<td align=right valign=top>
+
+<div id="panel_default" style="position: relative; width: 200px; height:0; margin: 0; border: 1px; padding: 0"></div>
+<div id="panel" style="position: relative; width: 200px; margin: 0; border: 0; padding: 0">
+
+<div style="width: 190px;" class="right-panel">
+
+<table width=190 cellspacing=0 cellpadding=3 border=0>
+
+<tr><td colspan=2 align=center valign=top><font color=#F26C4F><b>ИНСТРУМЕНТЫ</b></font><div style="height:5px;"></div></td></tr>
+
+
+
+<tr><td width=15% align=right valign=top>
+<a href="/projects/science_index/author_tutorial.asp"><img src="images/but_orange.gif" width=15 height=15 hspace=3 border=0></a></td>
+<td width=85% align=left valign=middle><font color=#00008f><a href="/projects/science_index/author_tutorial.asp">Инструкция для авторов</a></font>
+</td></tr>
+
+
+
+
+</table>
+</div>
+
+</div>
+</FORM>
+
+</td></tr></table>
+</td></tr></table>
+
+<br><br>
+<table width=970 height=40 border=0 cellpadding=0 cellspacing=0 id="footer">
+<tr align=center valign=middle class="menug">
+<td width=15% valign="bottom">
+
+</td>
+<td width=70%><font color=#00008f><span style="position: relative; top: 3px; right: 15px; color: #F26C4F;">*</span><a href="/copyright.asp">&copy; 2000-2025 ООО НАУЧНАЯ ЭЛЕКТРОННАЯ БИБЛИОТЕКА. Все права защищены</a></font><span style="position: relative; top: 3px; left: 15px; color: #F26C4F;">*</span></td>
+<td width=15% valign="bottom">
+
+</td>
+</tr></table>
+
+<!-- Yandex.Metrika -->
+<div style="display:none;"><script type="text/javascript">
+(function(w, c) {
+    (w[c] = w[c] || []).push(function() {
+        try {
+            w.yaCounter171463 = new Ya.Metrika(171463);
+        } catch(e) {}
+    });
+})(window, 'yandex_metrika_callbacks');
+</script></div>
+<script src="//mc.yandex.ru/metrika/watch.js" type="text/javascript" defer="defer"></script>
+<noscript><div style="position:absolute"><img src="//mc.yandex.ru/watch/171463" alt="" /></div></noscript>
+<!-- /Yandex.Metrika -->
+
+
+
+
+<br><br><br>
+</td></tr></table>
+</html>
