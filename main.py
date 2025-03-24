@@ -108,16 +108,16 @@ def run_script( pub, begin_year="2023", end_year="2025", reset_checkboxes=True):
     article_checkbox = driver.find_element(By.NAME, 'type_article')
     title_checkbox = driver.find_element(By.NAME, 'where_name')
     # book_checkbox = driver.find_element(By.NAME, 'type_book')
-    # conf_checkbox = driver.find_element(By.NAME, 'type_conf')
+    conf_checkbox = driver.find_element(By.NAME, 'type_conf')
 
     if not article_checkbox.is_selected():
         driver.find_element(By.NAME, 'type_article').click()
     if not title_checkbox.is_selected():
         driver.find_element(By.NAME, 'where_name').click()
-    # if not book_checkbox.is_selected():
-    #     driver.find_element(By.NAME, 'type_book').click()
-    # if not conf_checkbox.is_selected():
-    #     driver.find_element(By.NAME, 'type_conf').click()
+        # if not book_checkbox.is_selected():
+        #     driver.find_element(By.NAME, 'type_book').click()
+    if not conf_checkbox.is_selected():
+        driver.find_element(By.NAME, 'type_conf').click()
 
     search_button = driver.find_element(By.XPATH, '//a[text()="Поиск"]')
     search_button.click()
