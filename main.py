@@ -165,8 +165,8 @@ for pub in publications:
                 result = run_script( pub, begin_year="2023", end_year="2025")
 
         if result:
-            for book_url, title, author_name in result.items():
-                results.append((title, author_name, book_url))
+            title, author_name, book_url = result.items()
+            results.append((title, author_name, book_url))
             df_results = pd.DataFrame(results, columns=["Название статьи","Первый автор", "Ссылка на статью"])
 
             try:
