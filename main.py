@@ -134,13 +134,14 @@ def run_script( pub, begin_year="2023", end_year="2025", reset_checkboxes=True):
     for link in book_links:
         href = link['href']
         if '/item.asp?id=' in href:
-            print(href)
+
             full_url = 'https://www.elibrary.ru' + href
             title_tag = link.find('span', style="line-height:1.0;")
             # title = title_tag.text.strip() if title_tag else "Без названия"
 
-            author_tag = link.find_previous('i')
+            author_tag = link.find_next('i')
             author_name = "Не найдено"
+            print(author_tag)
             if author_tag:
                 author_text = author_tag.text.strip()
                 author_name = author_text.split(',')[0].strip() if author_text else "Не найдено"
