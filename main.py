@@ -1,3 +1,5 @@
+import traceback
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
@@ -131,8 +133,8 @@ def run_script( pub, begin_year="2023", end_year="2025", reset_checkboxes=True):
 
     for link in book_links:
         href = link['href']
-        print(href)
         if '/item.asp?id=' in href:
+            print(href)
             full_url = 'https://www.elibrary.ru' + href
             title_tag = link.find('span', style="line-height:1.0;")
             title = title_tag.text.strip() if title_tag else "Без названия"
@@ -177,4 +179,5 @@ for pub in publications:
             print(f"Для {pub} не найдено подходящих работ.")
     except Exception as e:
         print("страшная вонючая ошибка " + str(e))
+        traceback.print_exc()
 print("Результаты сохранены в файл 'вывод.xlsx'.")
