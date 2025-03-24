@@ -137,7 +137,7 @@ def run_script( pub, begin_year="2023", end_year="2025", reset_checkboxes=True):
             print(href)
             full_url = 'https://www.elibrary.ru' + href
             title_tag = link.find('span', style="line-height:1.0;")
-            title = title_tag.text.strip() if title_tag else "Без названия"
+            # title = title_tag.text.strip() if title_tag else "Без названия"
 
             author_tag = link.find_previous('font', {'color': '#00008f'})
             author_name = "Не найдено"
@@ -165,8 +165,10 @@ for pub in publications:
                 result = run_script( pub, begin_year="2023", end_year="2025")
 
         if result:
-            title, author_name, book_url = result.items()
-            results.append((title, author_name, book_url))
+            for book_url, data in result.items():
+                title = data['title']
+                author_name = data['author']
+                results.append((title, author_name, book_url))
             df_results = pd.DataFrame(results, columns=["Название статьи","Первый автор", "Ссылка на статью"])
 
             try:
