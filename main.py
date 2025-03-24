@@ -142,7 +142,7 @@ def run_script( pub, begin_year="2023", end_year="2025", reset_checkboxes=True):
                 author_text = author_tag.text.strip()
                 author_name = author_text.split(',')[0].strip() if author_text else "Не найдено"
 
-        book_urls[full_url] = {'title': title, 'author': author_name, 'url': full_url}
+        book_urls[full_url] = {'title': pub, 'author': author_name, 'url': full_url}
 
     return book_urls
 
