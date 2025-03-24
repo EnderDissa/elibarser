@@ -139,7 +139,7 @@ def run_script( pub, begin_year="2023", end_year="2025", reset_checkboxes=True):
             title_tag = link.find('span', style="line-height:1.0;")
             # title = title_tag.text.strip() if title_tag else "Без названия"
 
-            author_tag = link.find_previous('font', {'color': '#00008f'})
+            author_tag = link.find_previous('i')
             author_name = "Не найдено"
             if author_tag:
                 author_text = author_tag.text.strip()
