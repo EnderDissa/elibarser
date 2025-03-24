@@ -39,7 +39,7 @@ def calc_sleep(SLEEP=1):
     print(f"Sleeping for {SLEEPY} seconds.")
     return SLEEPY
 
-def run_script( author_name, begin_year="2023", end_year="2025", reset_checkboxes=True):
+def run_script( pub, begin_year="2023", end_year="2025", reset_checkboxes=True):
     url = 'https://elibrary.ru/querybox.asp'
     driver.get(url)
 
@@ -67,6 +67,7 @@ def run_script( author_name, begin_year="2023", end_year="2025", reset_checkboxe
     #     add_button = add_buttons[1]
     #     add_button.click()
     search_input = driver.find_element(By.NAME, 'ftext')  # Здесь мы меняем поиск по автору на поиск по статье
+    search_input.clear()
     search_input.send_keys(pub)
 
     time.sleep(calc_sleep())
